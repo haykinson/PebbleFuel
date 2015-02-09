@@ -1,0 +1,19 @@
+{
+    "appKeys": {},
+    "capabilities": [
+        ""
+    ],
+    "companyName": "haykinson@gmail.com",
+    "longName": "Fuel Tank Timer",
+    "projectType": "native",
+    "resources": {
+        "media": []
+    },
+    "shortName": "Fuel Timer",
+    "uuid": "3179376f-ccb3-41ae-b708-9012e14dee54",
+    "versionCode": 1,
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": false
+    }
+}
