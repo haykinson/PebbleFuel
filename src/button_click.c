@@ -97,9 +97,9 @@ static void flight_draw_airplane(Layer *layer, GContext *context) {
   GPoint bottomOfTail = GPoint(10, 96);
   GPoint leftOfFuselage = GPoint(5, 78);
   GPoint rightOfFuselage = GPoint(139, 78);
-  GPoint leftWingTopLeft = GPoint(115, 9);
-  GPoint rightWingTopLeft = GPoint(115, 78);
-  GSize wingSize = GSize(19, 70);
+  GPoint leftWingTopLeft = GPoint(120, 9);
+  GPoint rightWingTopLeft = GPoint(120, 78);
+  GSize wingSize = GSize(14, 70);
   GRect leftWing = (GRect) { .origin = leftWingTopLeft, .size = wingSize };
   GRect rightWing = (GRect) { .origin = rightWingTopLeft, .size = wingSize };
   
@@ -145,25 +145,25 @@ static void flight_window_load(Window *window) {
   
   layer_add_child(window_layer, airplane_layer);
   
-  leftElapsed = text_layer_create((GRect) { .origin = { 10, 11 }, .size = { bounds.size.w - 45, 28 } });
-  text_layer_set_text(leftElapsed, "00:00");
-  text_layer_set_font(leftElapsed, fonts_get_system_font(FONT_KEY_GOTHIC_28));
-  text_layer_set_text_alignment(leftElapsed, GTextAlignmentRight);
-  layer_add_child(window_layer, text_layer_get_layer(leftElapsed));
-
-  rightElapsed = text_layer_create((GRect) { .origin = { 10, 109 }, .size = { bounds.size.w - 45, 28 } });
-  text_layer_set_text(rightElapsed, "00:00");
-  text_layer_set_font(rightElapsed, fonts_get_system_font(FONT_KEY_GOTHIC_28));
-  text_layer_set_text_alignment(rightElapsed, GTextAlignmentRight);
-  layer_add_child(window_layer, text_layer_get_layer(rightElapsed));
-
-  leftRemaining = text_layer_create((GRect) { .origin = { 10, 39 }, .size = { bounds.size.w - 45, 20 }});
+  leftRemaining = text_layer_create((GRect) { .origin = { 3, 39 }, .size = { bounds.size.w - 30, 20 }});
   text_layer_set_text(leftRemaining, "00:00");
   text_layer_set_text_alignment(leftRemaining, GTextAlignmentRight);
   layer_set_hidden(text_layer_get_layer(leftRemaining), true);
   layer_add_child(window_layer, text_layer_get_layer(leftRemaining));
 
-  rightRemaining = text_layer_create((GRect) { .origin = { 10, 99 }, .size = { bounds.size.w - 45, 20 }});
+  leftElapsed = text_layer_create((GRect) { .origin = { 3, 11 }, .size = { bounds.size.w - 30, 28 } });
+  text_layer_set_text(leftElapsed, "00:00");
+  text_layer_set_font(leftElapsed, fonts_get_system_font(FONT_KEY_DROID_SERIF_28_BOLD));
+  text_layer_set_text_alignment(leftElapsed, GTextAlignmentRight);
+  layer_add_child(window_layer, text_layer_get_layer(leftElapsed));
+
+  rightElapsed = text_layer_create((GRect) { .origin = { 3, 109 }, .size = { bounds.size.w - 30, 28 } });
+  text_layer_set_text(rightElapsed, "00:00");
+  text_layer_set_font(rightElapsed, fonts_get_system_font(FONT_KEY_DROID_SERIF_28_BOLD));
+  text_layer_set_text_alignment(rightElapsed, GTextAlignmentRight);
+  layer_add_child(window_layer, text_layer_get_layer(rightElapsed));
+
+  rightRemaining = text_layer_create((GRect) { .origin = { 3, 96 }, .size = { bounds.size.w - 30, 20 }});
   text_layer_set_text(rightRemaining, "00:00");
   text_layer_set_text_alignment(rightRemaining, GTextAlignmentRight);
   layer_set_hidden(text_layer_get_layer(rightRemaining), true);
