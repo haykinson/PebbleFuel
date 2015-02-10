@@ -7,7 +7,14 @@
     "longName": "Fuel Tank Timer",
     "projectType": "native",
     "resources": {
-        "media": []
+        "media": [
+            {
+                "file": "images/wingdith28.png",
+                "menuIcon": true,
+                "name": "ICON",
+                "type": "png"
+            }
+        ]
     },
     "shortName": "Fuel Timer",
     "uuid": "3179376f-ccb3-41ae-b708-9012e14dee54",
