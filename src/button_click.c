@@ -8,6 +8,7 @@ static const int MIN_INTERVAL = 5;
 static const int MAX_INTERVAL = 60;
 static const int INTERVAL_CHANGE = 5;
 static const int INTERVAL_SELECTION_BUTTON_REPEATING_DELAY = 200; //milliseconds
+static const int THRESHOLD_FOR_BUZZ_NOTIFY = 890; //seconds
   
 static Window *selection_window;
 static Window *flight_window;
@@ -30,6 +31,11 @@ static time_t leftStartTime;
 static time_t rightStartTime;
 static time_t leftRemainingTargetTime;
 static time_t rightRemainingTargetTime;
+static bool leftNotified;
+static bool rightNotified;
+static bool paused;
+static time_t pauseStartTime;
+
 
 // ---------------- selection window --------------
 
@@ -136,6 +142,42 @@ static char *format_seconds(long seconds, char *buffer) {
   return buffer;
 }
 
+static void left_buzz_notify() {
+  //bz bz bz bz
+  static const uint32_t left_segments[] = { 200, 100, 200, 100, 200, 100, 200 };
+  static const VibePattern pat = {
+      .durations = left_segments,
+      .num_segments = ARRAY_LENGTH(left_segments),
+    };
+
+  if (!leftNotified) {
+    light_enable_interaction();
+    vibes_enqueue_custom_pattern(pat);
+    
+    leftNotified = true;
+  }
+}
+
+static void right_buzz_notify() {
+  // buzz buuzzzzzzzzzzzzzz
+  static const uint32_t right_segments[] = { 300, 100, 1300 };
+  static const VibePattern pat = {
+      .durations = right_segments,
+      .num_segments = ARRAY_LENGTH(right_segments),
+    };
+
+  if (!rightNotified) {
+    light_enable_interaction();
+    vibes_enqueue_custom_pattern(pat);
+    rightNotified = true;
+  }
+}
+
+static void reset_buzz_notification_need() {
+  leftNotified = false;  
+  rightNotified = false;
+}
+
 static void flight_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
@@ -170,28 +212,77 @@ static void flight_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(rightRemaining));
 }
 
-static void update_tick_on_wing(TextLayer *elapsedLayer, TextLayer *remainingLayer, char *elapsedBuffer, char *remainingBuffer, time_t *startTime, time_t *remainingTime, time_t tick) {
-  if (*startTime <= 0) {
-    *startTime += tick;
-  }
+static void pause() {
+  pauseStartTime = time(NULL);
+  paused = true;
+}
 
-  long timeDiff = (tick - *startTime);
+static void unpause() {
+  if (pauseStartTime > 0) {
+    long accumulatedPauseSeconds = time(NULL) - pauseStartTime;
+    if (leftWingSelected) {
+      leftStartTime += accumulatedPauseSeconds;
+      leftRemainingTargetTime += accumulatedPauseSeconds;
+    }
+    if (rightWingSelected) {
+      rightStartTime += accumulatedPauseSeconds;
+      rightRemainingTargetTime += accumulatedPauseSeconds;
+    }
+  }
+  
+  pauseStartTime = 0;
+  paused = false;
+}
+
+static void toggle_pause() {
+  if (paused)
+    unpause();
+  else
+    pause();
+}
+
+static void update_tick_on_wing(TextLayer *elapsedLayer, 
+                                TextLayer *remainingLayer, 
+                                char *elapsedBuffer, 
+                                char *remainingBuffer, 
+                                time_t *startTime, 
+                                time_t *remainingTime, 
+                                void (*buzz_notify)(void),
+                                time_t tick) {
+  long pauseTime = 0;
+  if (paused) {
+    pauseTime = tick - pauseStartTime;
+  }
+  
+  long timeDiff = (tick - *startTime) - pauseTime;
   text_layer_set_text(elapsedLayer, format_seconds(timeDiff, elapsedBuffer));
   
-  timeDiff = (tick - *remainingTime);
+  timeDiff = (tick - *remainingTime) - pauseTime;
   text_layer_set_text(remainingLayer, format_seconds(timeDiff, remainingBuffer));
+  
+  if (-timeDiff < THRESHOLD_FOR_BUZZ_NOTIFY) {
+    buzz_notify();
+  }
+}
+
+static void update_tick_on_left_wing(time_t tick) {
+  update_tick_on_wing(leftElapsed, leftRemaining, leftElapsedBuffer, leftRemainingBuffer, &leftStartTime, &leftRemainingTargetTime, &left_buzz_notify, tick);
+}
+
+static void update_tick_on_right_wing(time_t tick) {
+  update_tick_on_wing(rightElapsed, rightRemaining, rightElapsedBuffer, rightRemainingBuffer, &rightStartTime, &rightRemainingTargetTime, &right_buzz_notify, tick);
 }
 
 static void flight_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   if (NULL == tick_time)
     return;
-
+  
   time_t tick = local_mktime(tick_time);
   
   if (leftWingSelected) {
-    update_tick_on_wing(leftElapsed, leftRemaining, leftElapsedBuffer, leftRemainingBuffer, &leftStartTime, &leftRemainingTargetTime, tick);
+    update_tick_on_left_wing(tick);
   } else if (rightWingSelected) {
-    update_tick_on_wing(rightElapsed, rightRemaining, rightElapsedBuffer, rightRemainingBuffer, &rightStartTime, &rightRemainingTargetTime, tick);
+    update_tick_on_right_wing(tick);
   }
 }
   
@@ -204,16 +295,21 @@ static void flight_window_unload(Window *window) {
 }
 
 static void flight_up_click_handler(ClickRecognizerRef recognizer, void *context) {
+  time_t tick = time(NULL);
+  unpause();
+  
   if (!leftWingSelected) {
     layer_set_hidden(text_layer_get_layer(leftRemaining), false);
     
-    leftRemainingTargetTime = time(NULL) + current_interval * 60;
-    //TODO move starttime setting here
+    leftRemainingTargetTime = tick + current_interval * 60;
+    leftStartTime += tick;
+    
+    reset_buzz_notification_need();
   }
   if (rightWingSelected) {
     layer_set_hidden(text_layer_get_layer(rightRemaining), true);
     if (rightStartTime != 0) {
-      rightStartTime = rightStartTime - time(NULL);
+      rightStartTime = rightStartTime - tick;
     }
   }
   
@@ -221,19 +317,25 @@ static void flight_up_click_handler(ClickRecognizerRef recognizer, void *context
   rightWingSelected = false;
   
   layer_mark_dirty(airplane_layer);
+  update_tick_on_left_wing(tick);
 }
 
 static void flight_down_click_handler(ClickRecognizerRef recognizer, void *context) {
+  time_t tick = time(NULL);
+  unpause();
+  
   if (!rightWingSelected) {
     layer_set_hidden(text_layer_get_layer(rightRemaining), false);
     
-    rightRemainingTargetTime = time(NULL) + current_interval * 60;
-    //TODO move starttime setting here
+    rightRemainingTargetTime = tick + current_interval * 60;
+    rightStartTime += tick;
+    
+    reset_buzz_notification_need();
   }
   if (leftWingSelected) {
     layer_set_hidden(text_layer_get_layer(leftRemaining), true);
     if (leftStartTime != 0) {
-      leftStartTime = leftStartTime - time(NULL);
+      leftStartTime = leftStartTime - tick;
     }
   }
 
@@ -241,11 +343,17 @@ static void flight_down_click_handler(ClickRecognizerRef recognizer, void *conte
   leftWingSelected = false;
   
   layer_mark_dirty(airplane_layer);
+  update_tick_on_right_wing(tick);
+}
+
+static void flight_select_click_handler(ClickRecognizerRef recognizer, void *context) {
+  toggle_pause();
 }
 
 static void flight_click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_UP, flight_up_click_handler);
   window_single_click_subscribe(BUTTON_ID_DOWN, flight_down_click_handler);
+  window_single_click_subscribe(BUTTON_ID_SELECT, flight_select_click_handler);
 }
 
 // ----------- init -------------
