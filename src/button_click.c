@@ -8,7 +8,7 @@ static const int MIN_INTERVAL = 5;
 static const int MAX_INTERVAL = 60;
 static const int INTERVAL_CHANGE = 5;
 static const int INTERVAL_SELECTION_BUTTON_REPEATING_DELAY = 200; //milliseconds
-static const int THRESHOLD_FOR_BUZZ_NOTIFY = 890; //seconds
+static const int THRESHOLD_FOR_BUZZ_NOTIFY = 0; //will buzz at this many seconds remaining
   
 static Window *selection_window;
 static Window *flight_window;
@@ -178,40 +178,6 @@ static void reset_buzz_notification_need() {
   rightNotified = false;
 }
 
-static void flight_window_load(Window *window) {
-  Layer *window_layer = window_get_root_layer(window);
-  GRect bounds = layer_get_bounds(window_layer);
-  
-  airplane_layer = layer_create(bounds);
-  layer_set_update_proc(airplane_layer, flight_draw_airplane);  
-  
-  layer_add_child(window_layer, airplane_layer);
-  
-  leftRemaining = text_layer_create((GRect) { .origin = { 3, 39 }, .size = { bounds.size.w - 30, 20 }});
-  text_layer_set_text(leftRemaining, "00:00");
-  text_layer_set_text_alignment(leftRemaining, GTextAlignmentRight);
-  layer_set_hidden(text_layer_get_layer(leftRemaining), true);
-  layer_add_child(window_layer, text_layer_get_layer(leftRemaining));
-
-  leftElapsed = text_layer_create((GRect) { .origin = { 3, 11 }, .size = { bounds.size.w - 30, 28 } });
-  text_layer_set_text(leftElapsed, "00:00");
-  text_layer_set_font(leftElapsed, fonts_get_system_font(FONT_KEY_DROID_SERIF_28_BOLD));
-  text_layer_set_text_alignment(leftElapsed, GTextAlignmentRight);
-  layer_add_child(window_layer, text_layer_get_layer(leftElapsed));
-
-  rightElapsed = text_layer_create((GRect) { .origin = { 3, 109 }, .size = { bounds.size.w - 30, 28 } });
-  text_layer_set_text(rightElapsed, "00:00");
-  text_layer_set_font(rightElapsed, fonts_get_system_font(FONT_KEY_DROID_SERIF_28_BOLD));
-  text_layer_set_text_alignment(rightElapsed, GTextAlignmentRight);
-  layer_add_child(window_layer, text_layer_get_layer(rightElapsed));
-
-  rightRemaining = text_layer_create((GRect) { .origin = { 3, 96 }, .size = { bounds.size.w - 30, 20 }});
-  text_layer_set_text(rightRemaining, "00:00");
-  text_layer_set_text_alignment(rightRemaining, GTextAlignmentRight);
-  layer_set_hidden(text_layer_get_layer(rightRemaining), true);
-  layer_add_child(window_layer, text_layer_get_layer(rightRemaining));
-}
-
 static void pause() {
   pauseStartTime = time(NULL);
   paused = true;
@@ -284,6 +250,45 @@ static void flight_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   } else if (rightWingSelected) {
     update_tick_on_right_wing(tick);
   }
+}
+
+static void flight_window_load(Window *window) {
+  Layer *window_layer = window_get_root_layer(window);
+  GRect bounds = layer_get_bounds(window_layer);
+  
+  airplane_layer = layer_create(bounds);
+  layer_set_update_proc(airplane_layer, flight_draw_airplane);  
+  
+  layer_add_child(window_layer, airplane_layer);
+  
+  leftRemaining = text_layer_create((GRect) { .origin = { 3, 39 }, .size = { bounds.size.w - 30, 20 }});
+  text_layer_set_text(leftRemaining, "00:00");
+  text_layer_set_text_alignment(leftRemaining, GTextAlignmentRight);
+  layer_set_hidden(text_layer_get_layer(leftRemaining), !leftWingSelected);
+  layer_add_child(window_layer, text_layer_get_layer(leftRemaining));
+
+  leftElapsed = text_layer_create((GRect) { .origin = { 3, 11 }, .size = { bounds.size.w - 30, 28 } });
+  text_layer_set_text(leftElapsed, "00:00");
+  text_layer_set_font(leftElapsed, fonts_get_system_font(FONT_KEY_DROID_SERIF_28_BOLD));
+  text_layer_set_text_alignment(leftElapsed, GTextAlignmentRight);
+  layer_add_child(window_layer, text_layer_get_layer(leftElapsed));
+
+  rightElapsed = text_layer_create((GRect) { .origin = { 3, 109 }, .size = { bounds.size.w - 30, 28 } });
+  text_layer_set_text(rightElapsed, "00:00");
+  text_layer_set_font(rightElapsed, fonts_get_system_font(FONT_KEY_DROID_SERIF_28_BOLD));
+  text_layer_set_text_alignment(rightElapsed, GTextAlignmentRight);
+  layer_add_child(window_layer, text_layer_get_layer(rightElapsed));
+
+  rightRemaining = text_layer_create((GRect) { .origin = { 3, 96 }, .size = { bounds.size.w - 30, 20 }});
+  text_layer_set_text(rightRemaining, "00:00");
+  text_layer_set_text_alignment(rightRemaining, GTextAlignmentRight);
+  layer_set_hidden(text_layer_get_layer(rightRemaining), !rightWingSelected);
+  layer_add_child(window_layer, text_layer_get_layer(rightRemaining));
+  
+  if (leftStartTime > 0)
+    update_tick_on_left_wing(time(NULL));
+  if (rightStartTime > 0)
+    update_tick_on_right_wing(time(NULL));
 }
   
 static void flight_window_unload(Window *window) {
