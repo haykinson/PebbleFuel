@@ -9,7 +9,7 @@ static const int MAX_INTERVAL = 60;
 static const int INTERVAL_CHANGE = 5;
 static const int INTERVAL_SELECTION_BUTTON_REPEATING_DELAY = 200; //milliseconds
 static const int THRESHOLD_FOR_BUZZ_NOTIFY = 0; //will buzz at this many seconds remaining
-  
+
 static Window *selection_window;
 static Window *flight_window;
 static TextLayer *text_layer;
@@ -35,6 +35,8 @@ static bool leftNotified;
 static bool rightNotified;
 static bool paused;
 static time_t pauseStartTime;
+static time_t lastLeftDiff;
+static time_t lastRightDiff;
 
 
 // ---------------- selection window --------------
@@ -211,6 +213,7 @@ static void update_tick_on_wing(TextLayer *elapsedLayer,
                                 TextLayer *remainingLayer, 
                                 char *elapsedBuffer, 
                                 char *remainingBuffer, 
+                                long *lastRecordedDiff,
                                 time_t *startTime, 
                                 time_t *remainingTime, 
                                 void (*buzz_notify)(void),
@@ -221,6 +224,7 @@ static void update_tick_on_wing(TextLayer *elapsedLayer,
   }
   
   long timeDiff = (tick - *startTime) - pauseTime;
+  *lastRecordedDiff = timeDiff;
   text_layer_set_text(elapsedLayer, format_seconds(timeDiff, elapsedBuffer));
   
   timeDiff = (tick - *remainingTime) - pauseTime;
@@ -232,11 +236,27 @@ static void update_tick_on_wing(TextLayer *elapsedLayer,
 }
 
 static void update_tick_on_left_wing(time_t tick) {
-  update_tick_on_wing(leftElapsed, leftRemaining, leftElapsedBuffer, leftRemainingBuffer, &leftStartTime, &leftRemainingTargetTime, &left_buzz_notify, tick);
+  update_tick_on_wing(leftElapsed, 
+                      leftRemaining, 
+                      leftElapsedBuffer, 
+                      leftRemainingBuffer, 
+                      &lastLeftDiff,
+                      &leftStartTime, 
+                      &leftRemainingTargetTime, 
+                      &left_buzz_notify, 
+                      tick);
 }
 
 static void update_tick_on_right_wing(time_t tick) {
-  update_tick_on_wing(rightElapsed, rightRemaining, rightElapsedBuffer, rightRemainingBuffer, &rightStartTime, &rightRemainingTargetTime, &right_buzz_notify, tick);
+  update_tick_on_wing(rightElapsed, 
+                      rightRemaining, 
+                      rightElapsedBuffer, 
+                      rightRemainingBuffer, 
+                      &lastRightDiff,
+                      &rightStartTime, 
+                      &rightRemainingTargetTime, 
+                      &right_buzz_notify, 
+                      tick);
 }
 
 static void flight_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
@@ -285,10 +305,10 @@ static void flight_window_load(Window *window) {
   layer_set_hidden(text_layer_get_layer(rightRemaining), !rightWingSelected);
   layer_add_child(window_layer, text_layer_get_layer(rightRemaining));
   
-  if (leftStartTime > 0)
-    update_tick_on_left_wing(time(NULL));
-  if (rightStartTime > 0)
-    update_tick_on_right_wing(time(NULL));
+  if (leftStartTime != 0)
+    text_layer_set_text(leftElapsed, format_seconds(lastLeftDiff, leftElapsedBuffer));
+  if (rightStartTime != 0)
+    text_layer_set_text(rightElapsed, format_seconds(lastRightDiff, rightElapsedBuffer));
 }
   
 static void flight_window_unload(Window *window) {
