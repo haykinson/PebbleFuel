@@ -1,21 +1,13 @@
 #include <pebble.h>
 #include "modules/util.h"
+#include "windows/flight.h"
+#include "windows/settings.h"
 
 static const int MAX_TIME_TEXT_LEN = 9;
-static const int MAX_TIME_SELECTION_TEXT_LEN = 10;
-static const int STARTING_INTERVAL = 15;
-static const int MIN_INTERVAL = 5;
-static const int MAX_INTERVAL = 60;
-static const int INTERVAL_CHANGE = 5;
-static const int INTERVAL_SELECTION_BUTTON_REPEATING_DELAY = 200; //milliseconds
 static const int THRESHOLD_FOR_BUZZ_NOTIFY = 0; //will buzz at this many seconds remaining
 
 static Window *selection_window;
 static Window *flight_window;
-static TextLayer *text_layer;
-static TextLayer *time_selection_layer;
-static char *time_selection_text;
-static int current_interval;
 static Layer *airplane_layer;
 static bool leftWingSelected = false;
 static bool rightWingSelected = false;
@@ -38,61 +30,6 @@ static time_t pauseStartTime;
 static time_t lastLeftDiff;
 static time_t lastRightDiff;
 
-
-// ---------------- selection window --------------
-
-static char *text_for_minutes() {
-  snprintf(time_selection_text, MAX_TIME_SELECTION_TEXT_LEN, "%i mins", current_interval);
-  return time_selection_text;
-}
-
-static void update_interval_text() {
-  text_layer_set_text(time_selection_layer, text_for_minutes());
-}
-
-static void selection_select_click_handler(ClickRecognizerRef recognizer, void *context) {
-  window_stack_push(flight_window, true);
-}
-
-static void selection_up_click_handler(ClickRecognizerRef recognizer, void *context) {
-  if (current_interval < MAX_INTERVAL) {
-    current_interval += INTERVAL_CHANGE;
-    update_interval_text();
-  }
-}
-
-static void selection_down_click_handler(ClickRecognizerRef recognizer, void *context) {
-  if (current_interval > MIN_INTERVAL) {
-    current_interval -= INTERVAL_CHANGE;
-    update_interval_text();
-  }
-}
-
-static void selection_click_config_provider(void *context) {
-  window_single_click_subscribe(BUTTON_ID_SELECT, selection_select_click_handler);
-  window_single_repeating_click_subscribe(BUTTON_ID_UP, INTERVAL_SELECTION_BUTTON_REPEATING_DELAY, selection_up_click_handler);
-  window_single_repeating_click_subscribe(BUTTON_ID_DOWN, INTERVAL_SELECTION_BUTTON_REPEATING_DELAY, selection_down_click_handler);
-}
-
-static void selection_window_load(Window *window) {
-  Layer *window_layer = window_get_root_layer(window);
-  GRect bounds = layer_get_bounds(window_layer);
-
-  text_layer = text_layer_create((GRect) { .origin = { 0, 72 }, .size = { bounds.size.w, 20 } });
-  text_layer_set_text(text_layer, "Choose an interval");
-  text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
-  layer_add_child(window_layer, text_layer_get_layer(text_layer));
-  
-  time_selection_layer = text_layer_create((GRect) { .origin = { 0, 90 }, .size = {bounds.size.w, 20 }});
-  text_layer_set_text(time_selection_layer, text_for_minutes());
-  text_layer_set_text_alignment(time_selection_layer, GTextAlignmentCenter);
-  layer_add_child(window_layer, text_layer_get_layer(time_selection_layer));
-}
-
-static void selection_window_unload(Window *window) {
-  text_layer_destroy(text_layer);
-  text_layer_destroy(time_selection_layer);
-}
 
 // ------------------- Flight window ---------------------
   
@@ -326,7 +263,7 @@ static void flight_up_click_handler(ClickRecognizerRef recognizer, void *context
   if (!leftWingSelected) {
     layer_set_hidden(text_layer_get_layer(leftRemaining), false);
     
-    leftRemainingTargetTime = tick + current_interval * 60;
+    leftRemainingTargetTime = tick + get_interval() * 60;
     leftStartTime += tick;
     
     reset_buzz_notification_need();
@@ -352,7 +289,7 @@ static void flight_down_click_handler(ClickRecognizerRef recognizer, void *conte
   if (!rightWingSelected) {
     layer_set_hidden(text_layer_get_layer(rightRemaining), false);
     
-    rightRemainingTargetTime = tick + current_interval * 60;
+    rightRemainingTargetTime = tick + get_interval() * 60;
     rightStartTime += tick;
     
     reset_buzz_notification_need();
@@ -383,17 +320,20 @@ static void flight_click_config_provider(void *context) {
 
 // ----------- init -------------
 
+static void init_basic_windows() {
+  selection_window = window_create();
+  flight_window = window_create();
+}
+
 static void init_vars() {
-  current_interval = STARTING_INTERVAL;
-  time_selection_text = (char *) calloc(MAX_TIME_SELECTION_TEXT_LEN, sizeof(char));
   leftElapsedBuffer = (char *) calloc(MAX_TIME_TEXT_LEN, sizeof(char));
   rightElapsedBuffer = (char *) calloc(MAX_TIME_TEXT_LEN, sizeof(char));
   leftRemainingBuffer = (char *) calloc(MAX_TIME_TEXT_LEN, sizeof(char));
   rightRemainingBuffer = (char *) calloc(MAX_TIME_TEXT_LEN, sizeof(char));
+  selection_init_vars(flight_window);
 }
 
 static void init_selection_window() {
-  selection_window = window_create();
   window_set_click_config_provider(selection_window, selection_click_config_provider);
   window_set_window_handlers(selection_window, (WindowHandlers) {
     .load = selection_window_load,
@@ -402,7 +342,6 @@ static void init_selection_window() {
 }
 
 static void init_flight_window() {
-  flight_window = window_create();
   window_set_click_config_provider(flight_window, flight_click_config_provider);
   window_set_window_handlers(flight_window, (WindowHandlers) {
     .load = flight_window_load,
@@ -413,6 +352,7 @@ static void init_flight_window() {
 }
 
 static void init(void) {
+  init_basic_windows();
   init_vars();
   init_selection_window();
   init_flight_window();
@@ -425,7 +365,8 @@ static void deinit(void) {
   window_destroy(selection_window);
   window_destroy(flight_window);
   
-  free(time_selection_text);
+  selection_deinit_vars();
+  
   free(leftElapsedBuffer);
   free(rightElapsedBuffer);
   free(leftRemainingBuffer);
