@@ -1,5 +1,5 @@
 #include <pebble.h>
-#include "util.h"
+#include "modules/util.h"
 
 static const int MAX_TIME_TEXT_LEN = 9;
 static const int MAX_TIME_SELECTION_TEXT_LEN = 10;
