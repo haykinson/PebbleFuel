@@ -30,6 +30,15 @@ static time_t pauseStartTime;
 static time_t lastLeftDiff;
 static time_t lastRightDiff;
 
+#if defined(PBL_COLOR)
+#define LEFT_WING_COLOR  GColorRed
+#define RIGHT_WING_COLOR GColorGreen
+#define UNFILLED_COLOR   GColorClear
+#else
+#define LEFT_WING_COLOR  GColorBlack
+#define RIGHT_WING_COLOR GColorBlack
+#define UNFILLED_COLOR   GColorClear
+#endif
 
 // ------------------- Flight window ---------------------
   
@@ -51,15 +60,23 @@ static void flight_draw_airplane(Layer *layer, GContext *context) {
   graphics_draw_line(context, topOfTail, bottomOfTail);
   graphics_draw_line(context, leftOfFuselage, rightOfFuselage);
   
-  if (leftWingSelected)
+  if (leftWingSelected) {
+    graphics_context_set_fill_color(context, LEFT_WING_COLOR);
     graphics_fill_rect(context, leftWing, 0, GCornerNone);
-  else
+  }
+  else {
+    graphics_context_set_fill_color(context, UNFILLED_COLOR);
     graphics_draw_rect(context, leftWing);
+  }
   
-  if (rightWingSelected)
+  if (rightWingSelected) {
+    graphics_context_set_fill_color(context, RIGHT_WING_COLOR);
     graphics_fill_rect(context, rightWing, 0, GCornerNone);
-  else
+  }
+  else {
+    graphics_context_set_fill_color(context, UNFILLED_COLOR);
     graphics_draw_rect(context, rightWing);
+  }
 }
 
 static char *format_seconds(long seconds, char *buffer) {
