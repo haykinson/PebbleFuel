@@ -200,7 +200,7 @@ static void flight_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   if (NULL == tick_time)
     return;
   
-  time_t tick = local_mktime(tick_time);
+  time_t tick = mktime(tick_time); //local_mktime(tick_time);
   
   if (leftWingSelected) {
     update_tick_on_left_wing(tick);
