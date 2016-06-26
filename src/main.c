@@ -1,10 +1,16 @@
 #include <pebble.h>
 #include "modules/util.h"
+#include "modules/tank.h"
+#include "modules/buzzer.h"
 #include "windows/flight.h"
 #include "windows/settings.h"
 
 static const int MAX_TIME_TEXT_LEN = 9;
 static const int THRESHOLD_FOR_BUZZ_NOTIFY = 0; //will buzz at this many seconds remaining
+
+static const uint32_t left_pattern[] = { 200, 100, 200, 100, 200, 100, 200 };
+static const uint32_t right_pattern[] = { 300, 100, 1300 };
+
 
 static Window *selection_window;
 static Window *flight_window;
@@ -23,12 +29,12 @@ static time_t leftStartTime;
 static time_t rightStartTime;
 static time_t leftRemainingTargetTime;
 static time_t rightRemainingTargetTime;
-static bool leftNotified;
-static bool rightNotified;
 static bool paused;
 static time_t pauseStartTime;
 static time_t lastLeftDiff;
 static time_t lastRightDiff;
+static Tank *left_tank;
+static Tank *right_tank;
 
 #if defined(PBL_COLOR)
 #define LEFT_WING_COLOR  GColorRed
@@ -99,39 +105,16 @@ static char *format_seconds(long seconds, char *buffer) {
 }
 
 static void left_buzz_notify() {
-  //bz bz bz bz
-  static const uint32_t left_segments[] = { 200, 100, 200, 100, 200, 100, 200 };
-  static const VibePattern pat = {
-      .durations = left_segments,
-      .num_segments = ARRAY_LENGTH(left_segments),
-    };
-
-  if (!leftNotified) {
-    light_enable_interaction();
-    vibes_enqueue_custom_pattern(pat);
-    
-    leftNotified = true;
-  }
+  buzz_tank(left_tank);
 }
 
 static void right_buzz_notify() {
-  // buzz buuzzzzzzzzzzzzzz
-  static const uint32_t right_segments[] = { 300, 100, 1300 };
-  static const VibePattern pat = {
-      .durations = right_segments,
-      .num_segments = ARRAY_LENGTH(right_segments),
-    };
-
-  if (!rightNotified) {
-    light_enable_interaction();
-    vibes_enqueue_custom_pattern(pat);
-    rightNotified = true;
-  }
+  buzz_tank(right_tank);
 }
 
 static void reset_buzz_notification_need() {
-  leftNotified = false;  
-  rightNotified = false;
+  left_tank->notified = false;
+  right_tank->notified = false;
 }
 
 static void pause() {
@@ -343,6 +326,11 @@ static void init_basic_windows() {
 }
 
 static void init_vars() {
+  left_tank = tank_create();
+  right_tank = tank_create();
+  tank_set_pattern(left_tank, left_pattern);
+  tank_set_pattern(right_tank, right_pattern);
+
   leftElapsedBuffer = (char *) calloc(MAX_TIME_TEXT_LEN, sizeof(char));
   rightElapsedBuffer = (char *) calloc(MAX_TIME_TEXT_LEN, sizeof(char));
   leftRemainingBuffer = (char *) calloc(MAX_TIME_TEXT_LEN, sizeof(char));

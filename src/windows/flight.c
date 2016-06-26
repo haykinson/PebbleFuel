@@ -1,3 +1,2 @@
-#include <pebble.h>
-#include "windows/flight.h"
+#include "flight.h"
 
