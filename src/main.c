@@ -15,14 +15,8 @@ static const uint32_t right_pattern[] = { 300, 100, 1300 };
 static Window *selection_window;
 static Window *flight_window;
 static Layer *airplane_layer;
-static time_t leftStartTime;
-static time_t rightStartTime;
-static time_t leftRemainingTargetTime;
-static time_t rightRemainingTargetTime;
 static bool paused;
 static time_t pauseStartTime;
-static time_t lastLeftDiff;
-static time_t lastRightDiff;
 static Tank *left_tank;
 static Tank *right_tank;
 
@@ -108,12 +102,12 @@ static void unpause() {
   if (pauseStartTime > 0) {
     long accumulatedPauseSeconds = time(NULL) - pauseStartTime;
     if (left_tank->selected) {
-      leftStartTime += accumulatedPauseSeconds;
-      leftRemainingTargetTime += accumulatedPauseSeconds;
+      left_tank->startTime += accumulatedPauseSeconds;
+      left_tank->remainingTargetTime += accumulatedPauseSeconds;
     }
     if (right_tank->selected) {
-      rightStartTime += accumulatedPauseSeconds;
-      rightRemainingTargetTime += accumulatedPauseSeconds;
+      right_tank->startTime += accumulatedPauseSeconds;
+      right_tank->remainingTargetTime += accumulatedPauseSeconds;
     }
   }
   
@@ -129,20 +123,17 @@ static void toggle_pause() {
 }
 
 static void update_tick_on_wing(Tank * tank,
-                                long *lastRecordedDiff,
-                                time_t *startTime, 
-                                time_t *remainingTime, 
                                 time_t tick) {
   long pauseTime = 0;
   if (paused) {
     pauseTime = tick - pauseStartTime;
   }
   
-  long timeDiff = (tick - *startTime) - pauseTime;
-  *lastRecordedDiff = timeDiff;
+  long timeDiff = (tick - tank->startTime) - pauseTime;
+  tank->lastDiff = timeDiff;
   text_layer_set_text(tank->elapsed, format_seconds(timeDiff, tank->elapsedBuffer));
   
-  timeDiff = (tick - *remainingTime) - pauseTime;
+  timeDiff = (tick - tank->remainingTargetTime) - pauseTime;
   text_layer_set_text(tank->remaining, format_seconds(timeDiff, tank->remainingBuffer));
   
   if (-timeDiff < THRESHOLD_FOR_BUZZ_NOTIFY) {
@@ -152,17 +143,11 @@ static void update_tick_on_wing(Tank * tank,
 
 static void update_tick_on_left_wing(time_t tick) {
   update_tick_on_wing(left_tank,
-                      &lastLeftDiff,
-                      &leftStartTime, 
-                      &leftRemainingTargetTime, 
                       tick);
 }
 
 static void update_tick_on_right_wing(time_t tick) {
   update_tick_on_wing(right_tank,
-                      &lastRightDiff,
-                      &rightStartTime, 
-                      &rightRemainingTargetTime, 
                       tick);
 }
 
@@ -209,10 +194,10 @@ static void flight_window_load(Window *window) {
   create_remaining_text_layer(left_tank, window_layer, (GRect)  { .origin = { 3, 39 },  .size = { bounds.size.w - 30, 20 }});
   create_remaining_text_layer(right_tank, window_layer, (GRect) { .origin = { 3, 96 },  .size = { bounds.size.w - 30, 20 }});
   
-  if (leftStartTime != 0)
-    text_layer_set_text(left_tank->elapsed, format_seconds(lastLeftDiff, left_tank->elapsedBuffer));
-  if (rightStartTime != 0)
-    text_layer_set_text(right_tank->elapsed, format_seconds(lastRightDiff, right_tank->elapsedBuffer));
+  if (left_tank->startTime != 0)
+    text_layer_set_text(left_tank->elapsed, format_seconds(left_tank->lastDiff, left_tank->elapsedBuffer));
+  if (right_tank->startTime != 0)
+    text_layer_set_text(right_tank->elapsed, format_seconds(right_tank->lastDiff, right_tank->elapsedBuffer));
 }
 
 void destroy_layers(Tank *tank) {
@@ -233,15 +218,15 @@ static void flight_up_click_handler(ClickRecognizerRef recognizer, void *context
   if (!left_tank->selected) {
     layer_set_hidden(text_layer_get_layer(left_tank->remaining), false);
     
-    leftRemainingTargetTime = tick + get_interval() * 60;
-    leftStartTime += tick;
+    left_tank->remainingTargetTime = tick + get_interval() * 60;
+    left_tank->startTime += tick;
     
     reset_buzz_notification_need();
   }
   if (right_tank->selected) {
     layer_set_hidden(text_layer_get_layer(right_tank->remaining), true);
-    if (rightStartTime != 0) {
-      rightStartTime = rightStartTime - tick;
+    if (right_tank->startTime != 0) {
+      right_tank->startTime = right_tank->startTime - tick;
     }
   }
   
@@ -259,15 +244,15 @@ static void flight_down_click_handler(ClickRecognizerRef recognizer, void *conte
   if (!right_tank->selected) {
     layer_set_hidden(text_layer_get_layer(right_tank->remaining), false);
     
-    rightRemainingTargetTime = tick + get_interval() * 60;
-    rightStartTime += tick;
+    right_tank->remainingTargetTime = tick + get_interval() * 60;
+    right_tank->startTime += tick;
     
     reset_buzz_notification_need();
   }
   if (left_tank->selected) {
     layer_set_hidden(text_layer_get_layer(left_tank->remaining), true);
-    if (leftStartTime != 0) {
-      leftStartTime = leftStartTime - tick;
+    if (left_tank->startTime != 0) {
+      left_tank->startTime = left_tank->startTime - tick;
     }
   }
 
