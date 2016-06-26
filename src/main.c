@@ -141,16 +141,6 @@ static void update_tick_on_wing(Tank * tank,
   }
 }
 
-static void update_tick_on_left_wing(time_t tick) {
-  update_tick_on_wing(left_tank,
-                      tick);
-}
-
-static void update_tick_on_right_wing(time_t tick) {
-  update_tick_on_wing(right_tank,
-                      tick);
-}
-
 static void flight_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   if (NULL == tick_time)
     return;
@@ -158,9 +148,9 @@ static void flight_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   time_t tick = mktime(tick_time); //local_mktime(tick_time);
   
   if (left_tank->selected) {
-    update_tick_on_left_wing(tick);
+    update_tick_on_wing(left_tank, tick);
   } else if (right_tank->selected) {
-    update_tick_on_right_wing(tick);
+    update_tick_on_wing(right_tank, tick);
   }
 }
 
@@ -211,56 +201,39 @@ static void flight_window_unload(Window *window) {
   destroy_layers(right_tank);
 }
 
-static void flight_up_click_handler(ClickRecognizerRef recognizer, void *context) {
+static void flight_click_handler(Tank *tank, Tank *otherTank) {
   time_t tick = time(NULL);
   unpause();
   
-  if (!left_tank->selected) {
-    layer_set_hidden(text_layer_get_layer(left_tank->remaining), false);
+  if (!tank->selected) {
+    layer_set_hidden(text_layer_get_layer(tank->remaining), false);
     
-    left_tank->remainingTargetTime = tick + get_interval() * 60;
-    left_tank->startTime += tick;
+    tank->remainingTargetTime = tick + get_interval() * 60;
+    tank->startTime += tick;
     
     reset_buzz_notification_need();
   }
-  if (right_tank->selected) {
-    layer_set_hidden(text_layer_get_layer(right_tank->remaining), true);
-    if (right_tank->startTime != 0) {
-      right_tank->startTime = right_tank->startTime - tick;
+  if (otherTank->selected) {
+    layer_set_hidden(text_layer_get_layer(otherTank->remaining), true);
+    if (otherTank->startTime != 0) {
+      otherTank->startTime = otherTank->startTime - tick;
     }
   }
   
-  left_tank->selected = true;
-  right_tank->selected = false;
+  tank->selected = true;
+  otherTank->selected = false;
   
   layer_mark_dirty(airplane_layer);
-  update_tick_on_left_wing(tick);
+  update_tick_on_wing(tank, tick);
+
+}
+
+static void flight_up_click_handler(ClickRecognizerRef recognizer, void *context) {
+  flight_click_handler(left_tank, right_tank);
 }
 
 static void flight_down_click_handler(ClickRecognizerRef recognizer, void *context) {
-  time_t tick = time(NULL);
-  unpause();
-  
-  if (!right_tank->selected) {
-    layer_set_hidden(text_layer_get_layer(right_tank->remaining), false);
-    
-    right_tank->remainingTargetTime = tick + get_interval() * 60;
-    right_tank->startTime += tick;
-    
-    reset_buzz_notification_need();
-  }
-  if (left_tank->selected) {
-    layer_set_hidden(text_layer_get_layer(left_tank->remaining), true);
-    if (left_tank->startTime != 0) {
-      left_tank->startTime = left_tank->startTime - tick;
-    }
-  }
-
-  right_tank->selected = true;
-  left_tank->selected = false;
-  
-  layer_mark_dirty(airplane_layer);
-  update_tick_on_right_wing(tick);
+  flight_click_handler(right_tank, left_tank);
 }
 
 static void flight_select_click_handler(ClickRecognizerRef recognizer, void *context) {
