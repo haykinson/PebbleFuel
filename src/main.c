@@ -21,10 +21,6 @@ static TextLayer *leftElapsed;
 static TextLayer *rightElapsed;
 static TextLayer *leftRemaining;
 static TextLayer *rightRemaining;
-static char *leftElapsedBuffer;
-static char *rightElapsedBuffer;
-static char *leftRemainingBuffer;
-static char *rightRemainingBuffer;
 static time_t leftStartTime;
 static time_t rightStartTime;
 static time_t leftRemainingTargetTime;
@@ -104,14 +100,6 @@ static char *format_seconds(long seconds, char *buffer) {
   return buffer;
 }
 
-static void left_buzz_notify() {
-  buzz_tank(left_tank);
-}
-
-static void right_buzz_notify() {
-  buzz_tank(right_tank);
-}
-
 static void reset_buzz_notification_need() {
   left_tank->notified = false;
   right_tank->notified = false;
@@ -146,14 +134,12 @@ static void toggle_pause() {
     pause();
 }
 
-static void update_tick_on_wing(TextLayer *elapsedLayer, 
+static void update_tick_on_wing(Tank * tank,
+                                TextLayer *elapsedLayer, 
                                 TextLayer *remainingLayer, 
-                                char *elapsedBuffer, 
-                                char *remainingBuffer, 
                                 long *lastRecordedDiff,
                                 time_t *startTime, 
                                 time_t *remainingTime, 
-                                void (*buzz_notify)(void),
                                 time_t tick) {
   long pauseTime = 0;
   if (paused) {
@@ -162,37 +148,33 @@ static void update_tick_on_wing(TextLayer *elapsedLayer,
   
   long timeDiff = (tick - *startTime) - pauseTime;
   *lastRecordedDiff = timeDiff;
-  text_layer_set_text(elapsedLayer, format_seconds(timeDiff, elapsedBuffer));
+  text_layer_set_text(elapsedLayer, format_seconds(timeDiff, tank->elapsedBuffer));
   
   timeDiff = (tick - *remainingTime) - pauseTime;
-  text_layer_set_text(remainingLayer, format_seconds(timeDiff, remainingBuffer));
+  text_layer_set_text(remainingLayer, format_seconds(timeDiff, tank->remainingBuffer));
   
   if (-timeDiff < THRESHOLD_FOR_BUZZ_NOTIFY) {
-    buzz_notify();
+    buzz_tank(tank);
   }
 }
 
 static void update_tick_on_left_wing(time_t tick) {
-  update_tick_on_wing(leftElapsed, 
+  update_tick_on_wing(left_tank,
+                      leftElapsed, 
                       leftRemaining, 
-                      leftElapsedBuffer, 
-                      leftRemainingBuffer, 
                       &lastLeftDiff,
                       &leftStartTime, 
                       &leftRemainingTargetTime, 
-                      &left_buzz_notify, 
                       tick);
 }
 
 static void update_tick_on_right_wing(time_t tick) {
-  update_tick_on_wing(rightElapsed, 
+  update_tick_on_wing(right_tank,
+                      rightElapsed, 
                       rightRemaining, 
-                      rightElapsedBuffer, 
-                      rightRemainingBuffer, 
                       &lastRightDiff,
                       &rightStartTime, 
                       &rightRemainingTargetTime, 
-                      &right_buzz_notify, 
                       tick);
 }
 
@@ -243,9 +225,9 @@ static void flight_window_load(Window *window) {
   layer_add_child(window_layer, text_layer_get_layer(rightRemaining));
   
   if (leftStartTime != 0)
-    text_layer_set_text(leftElapsed, format_seconds(lastLeftDiff, leftElapsedBuffer));
+    text_layer_set_text(leftElapsed, format_seconds(lastLeftDiff, left_tank->elapsedBuffer));
   if (rightStartTime != 0)
-    text_layer_set_text(rightElapsed, format_seconds(lastRightDiff, rightElapsedBuffer));
+    text_layer_set_text(rightElapsed, format_seconds(lastRightDiff, right_tank->elapsedBuffer));
 }
   
 static void flight_window_unload(Window *window) {
@@ -331,10 +313,6 @@ static void init_vars() {
   tank_set_pattern(left_tank, left_pattern);
   tank_set_pattern(right_tank, right_pattern);
 
-  leftElapsedBuffer = (char *) calloc(MAX_TIME_TEXT_LEN, sizeof(char));
-  rightElapsedBuffer = (char *) calloc(MAX_TIME_TEXT_LEN, sizeof(char));
-  leftRemainingBuffer = (char *) calloc(MAX_TIME_TEXT_LEN, sizeof(char));
-  rightRemainingBuffer = (char *) calloc(MAX_TIME_TEXT_LEN, sizeof(char));
   selection_init_vars(flight_window);
 }
 
@@ -367,16 +345,15 @@ static void init(void) {
 }
 
 static void deinit(void) {
+  tick_timer_service_unsubscribe(); 
+
   window_destroy(selection_window);
   window_destroy(flight_window);
   
   selection_deinit_vars();
-  
-  free(leftElapsedBuffer);
-  free(rightElapsedBuffer);
-  free(leftRemainingBuffer);
-  free(rightRemainingBuffer);
-  tick_timer_service_unsubscribe(); 
+
+  tank_free(left_tank);
+  tank_free(right_tank);
 }
 
 int main(void) {
