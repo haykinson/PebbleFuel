@@ -26,7 +26,11 @@ void tank_free(Tank *tank) {
 }
 
 void tank_set_pattern(Tank *tank, const uint32_t *pattern) {
-	//tank->buzzPattern =  (uint32_t *) pattern;
+	//if previously set, free it
+	if (NULL != tank->vibePattern) {
+		free(tank->vibePattern);
+	}
+
 	tank->vibePattern = (VibePattern *) malloc(sizeof(VibePattern));
 
     tank->vibePattern->durations = (uint32_t *) pattern;

@@ -12,7 +12,6 @@ typedef struct Tank {
 	time_t remainingTargetTime;
 	bool notified;
 	time_t lastDiff;
-	uint32_t *buzzPattern;
 	VibePattern *vibePattern;
 
 } Tank;
