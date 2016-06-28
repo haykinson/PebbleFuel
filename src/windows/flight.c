@@ -2,14 +2,16 @@
 
 static const int THRESHOLD_FOR_BUZZ_NOTIFY = 0; //will buzz at this many seconds remaining
 
-static const uint32_t left_pattern[] = { 200, 100, 200, 100, 200, 100, 200 };
-static const uint32_t right_pattern[] = { 300, 100, 1300 };
+static const uint32_t left_pattern[] = { 200, 100, 200, 100, 200, 100, 200, 2000, 200, 100, 200, 100, 200, 100, 200 };
+static const uint32_t right_pattern[] = { 300, 100, 1300, 2000, 300, 100, 1300 };
 
 static Layer *airplane_layer;
 
 static bool paused;
 static time_t pauseStartTime;
 static Tank* all_tanks[2];
+
+#define TANK_COUNT 2
 
 #if defined(PBL_COLOR)
 #define LEFT_WING_COLOR  GColorRed
@@ -26,16 +28,16 @@ static void flight_draw_airplane(Layer *layer, GContext *context) {
   graphics_context_set_stroke_color(context, GColorBlack);
   graphics_context_set_fill_color(context, GColorBlack);
   
-  //assume y center is 78
-  GPoint topOfTail = GPoint(10, 60);
-  GPoint bottomOfTail = GPoint(10, 96);
-  GPoint leftOfFuselage = GPoint(5, 78);
-  GPoint rightOfFuselage = GPoint(139, 78);
+  //assume y center is 94
+  GPoint topOfTail = GPoint(10, 76);
+  GPoint bottomOfTail = GPoint(10, 112);
+  GPoint leftOfFuselage = GPoint(5, 94);
+  GPoint rightOfFuselage = GPoint(139, 94);
   
   graphics_draw_line(context, topOfTail, bottomOfTail);
   graphics_draw_line(context, leftOfFuselage, rightOfFuselage);
 
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < TANK_COUNT; i++) {
     Tank *tank = all_tanks[i];
     if (NULL != tank && tank->selected) {
       graphics_context_set_fill_color(context, tank->enabledColor);
@@ -48,7 +50,7 @@ static void flight_draw_airplane(Layer *layer, GContext *context) {
 }
 
 static void reset_buzz_notification_need() {
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < TANK_COUNT; i++) {
     Tank *tank = all_tanks[i];
     if (NULL != tank) {
       tank->notified = false;
@@ -65,7 +67,7 @@ static void unpause() {
   if (pauseStartTime > 0) {
     long accumulatedPauseSeconds = time(NULL) - pauseStartTime;
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < TANK_COUNT; i++) {
       Tank *tank = all_tanks[i];
       if (NULL != tank && tank->selected) {
         tank->startTime += accumulatedPauseSeconds;
@@ -109,7 +111,7 @@ static void flight_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   
   time_t tick = mktime(tick_time); //local_mktime(tick_time);
   
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < TANK_COUNT; i++) {
     Tank *tank = all_tanks[i];
     if (NULL != tank && tank->selected) {
       update_tick_on_wing(tank, tick);
@@ -136,13 +138,21 @@ static void create_remaining_text_layer(Tank *tank, Layer *window_layer, GRect w
 static void flight_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
+
+  StatusBarLayer *status_bar = status_bar_layer_create();
+  status_bar_layer_set_separator_mode(status_bar, StatusBarLayerSeparatorModeDotted);
+#if defined(PBL_COLOR)
+  status_bar_layer_set_colors(status_bar, GColorCeleste, GColorBulgarianRose);
+#endif
+
+  layer_add_child(window_layer, status_bar_layer_get_layer(status_bar));
   
   airplane_layer = layer_create(bounds);
   layer_set_update_proc(airplane_layer, flight_draw_airplane);  
   
   layer_add_child(window_layer, airplane_layer);
   
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < TANK_COUNT; i++) {
     Tank *tank = all_tanks[i];
     if (NULL != tank) {
       create_elapsed_text_layer(tank, window_layer, tank->elapsedTextLocation);
@@ -163,7 +173,7 @@ static void destroy_layers(Tank *tank) {
 static void flight_window_unload(Window *window) {
   layer_destroy(airplane_layer);
 
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < TANK_COUNT; i++) {
     Tank *tank = all_tanks[i];
     if (NULL != tank) {
       destroy_layers(tank);
@@ -228,8 +238,8 @@ void flight_init_vars(Window *flight_window) {
   Layer *window_layer = window_get_root_layer(flight_window);
   GRect bounds = layer_get_bounds(window_layer);
 
-  GPoint leftWingTopLeft = GPoint(120, 9);
-  GPoint rightWingTopLeft = GPoint(120, 78);
+  GPoint leftWingTopLeft = GPoint(120, 25);
+  GPoint rightWingTopLeft = GPoint(120, 94);
   GSize wingSize = GSize(14, 70);
   GRect leftWing = (GRect) { .origin = leftWingTopLeft, .size = wingSize };
   GRect rightWing = (GRect) { .origin = rightWingTopLeft, .size = wingSize };
@@ -238,18 +248,18 @@ void flight_init_vars(Window *flight_window) {
   tank_set_location(right_tank, rightWing);
 
   tank_set_text_locations(left_tank, 
-    (GRect) { .origin = { 3, 11 },  .size = { bounds.size.w - 30, 28 }},
-    (GRect) { .origin = { 3, 39 },  .size = { bounds.size.w - 30, 20 }});
+    (GRect) { .origin = { 3, 27 },  .size = { bounds.size.w - 30, 28 }},
+    (GRect) { .origin = { 3, 55 },  .size = { bounds.size.w - 30, 20 }});
   tank_set_text_locations(right_tank, 
-    (GRect) { .origin = { 3, 109 }, .size = { bounds.size.w - 30, 28 }},
-    (GRect) { .origin = { 3, 96 },  .size = { bounds.size.w - 30, 20 }});
+    (GRect) { .origin = { 3, 125 }, .size = { bounds.size.w - 30, 28 }},
+    (GRect) { .origin = { 3, 112 },  .size = { bounds.size.w - 30, 20 }});
 
   all_tanks[0] = left_tank;
   all_tanks[1] = right_tank;
 }
 
 void flight_deinit_vars() {
-  for (int i = 0; i < 2; i++) {
+  for (int i = 0; i < TANK_COUNT; i++) {
 	Tank *tank = all_tanks[i];
     if (NULL != tank) {
       tank_free(tank);
