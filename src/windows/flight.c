@@ -103,7 +103,7 @@ static void update_tick_on_wing(Tank * tank, time_t tick) {
   }
 }
 
-void flight_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+static void flight_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   if (NULL == tick_time)
     return;
   
@@ -133,7 +133,7 @@ static void create_remaining_text_layer(Tank *tank, Layer *window_layer, GRect w
   layer_add_child(window_layer, text_layer_get_layer(tank->remaining));
 }
 
-void flight_window_load(Window *window) {
+static void flight_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
   
@@ -155,12 +155,12 @@ void flight_window_load(Window *window) {
   }
 }
 
-void destroy_layers(Tank *tank) {
+static void destroy_layers(Tank *tank) {
   text_layer_destroy(tank->elapsed);
   text_layer_destroy(tank->remaining);
 }
   
-void flight_window_unload(Window *window) {
+static void flight_window_unload(Window *window) {
   layer_destroy(airplane_layer);
 
   for (int i = 0; i < 2; i++) {
@@ -210,7 +210,7 @@ static void flight_select_click_handler(ClickRecognizerRef recognizer, void *con
   toggle_pause();
 }
 
-void flight_click_config_provider(void *context) {
+static void flight_click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_UP, flight_up_click_handler);
   window_single_click_subscribe(BUTTON_ID_DOWN, flight_down_click_handler);
   window_single_click_subscribe(BUTTON_ID_SELECT, flight_select_click_handler);
@@ -255,4 +255,14 @@ void flight_deinit_vars() {
       tank_free(tank);
     }
   }
+}
+
+void flight_init_window(Window *flight_window) {
+  window_set_click_config_provider(flight_window, flight_click_config_provider);
+  window_set_window_handlers(flight_window, (WindowHandlers) {
+    .load = flight_window_load,
+    .unload = flight_window_unload,
+  });
+  
+  tick_timer_service_subscribe(SECOND_UNIT, flight_tick_handler);
 }
