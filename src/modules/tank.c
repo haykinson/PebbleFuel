@@ -36,3 +36,23 @@ void tank_set_pattern(Tank *tank, const uint32_t *pattern) {
     tank->vibePattern->durations = (uint32_t *) pattern;
     tank->vibePattern->num_segments = ARRAY_LENGTH(pattern);
 }
+
+void tank_set_colors(Tank *tank, GColor enabledColor, GColor disabledColor) {
+	if (NULL != tank) {
+		tank->enabledColor = enabledColor;
+		tank->disabledColor = disabledColor;
+	}
+}
+
+void tank_set_location(Tank *tank, GRect location) {
+	if (NULL != tank) {
+		tank->location = location;
+	}
+}
+
+void tank_set_text_locations(Tank *tank, GRect elapsedTextLocation, GRect remainingTextLocation) {
+	if (NULL != tank) {
+		tank->elapsedTextLocation = elapsedTextLocation;
+		tank->remainingTextLocation = remainingTextLocation;
+	}
+}
