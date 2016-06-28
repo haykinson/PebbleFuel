@@ -1,6 +1,7 @@
 #include <pebble.h>
 #include "windows/flight.h"
 #include "windows/settings.h"
+#include "modules/timing.h"
 
 static Window *selection_window;
 static Window *flight_window;
@@ -35,8 +36,19 @@ static void deinit(void) {
   flight_deinit_vars();
 }
 
+void schedule_wakeups() {
+  if (!get_paused()) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Exiting, would schedule wakeup in %ld", (long) (get_remaining_target_time() - time(NULL)));
+  } else {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Existing, no wakeup cause paused");
+  }
+}
+
 int main(void) {
   init();
   app_event_loop();
+
+  schedule_wakeups();
+
   deinit();
 }

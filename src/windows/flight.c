@@ -61,6 +61,7 @@ static void reset_buzz_notification_need() {
 static void pause() {
   pauseStartTime = time(NULL);
   paused = true;
+  set_paused(paused);
 }
 
 static void unpause() {
@@ -72,12 +73,15 @@ static void unpause() {
       if (NULL != tank && tank->selected) {
         tank->startTime += accumulatedPauseSeconds;
         tank->remainingTargetTime += accumulatedPauseSeconds;
+
+        set_remaining_target_time(tank->remainingTargetTime);
       }
     }
   }
   
   pauseStartTime = 0;
   paused = false;
+  set_paused(paused);
 }
 
 static void toggle_pause() {
@@ -190,7 +194,9 @@ static void flight_click_handler(Tank *tank, Tank *otherTank) {
     
     tank->remainingTargetTime = tick + get_interval() * 60;
     tank->startTime += tick;
-    
+
+    set_remaining_target_time(tank->remainingTargetTime);
+
     reset_buzz_notification_need();
   }
   if (otherTank->selected) {
