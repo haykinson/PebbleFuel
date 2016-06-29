@@ -68,10 +68,10 @@ static void selection_window_unload(Window *window) {
   text_layer_destroy(time_selection_layer);
 }
 
-void selection_init_vars(Window *_flight_window) {
+void selection_init_vars(Window *_flight_window, PersistBaseDataV1 *config) {
   time_selection_text = (char *) calloc(MAX_TIME_SELECTION_TEXT_LEN, sizeof(char));
   flight_window = _flight_window;
-  set_interval(STARTING_INTERVAL);
+  set_interval(config->interval);
 }
 
 void selection_deinit_vars() {

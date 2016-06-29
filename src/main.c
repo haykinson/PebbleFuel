@@ -2,9 +2,12 @@
 #include "windows/flight.h"
 #include "windows/settings.h"
 #include "modules/timing.h"
+#include "modules/persistence.h"
 
 static Window *selection_window;
 static Window *flight_window;
+
+static PersistBaseDataV1 currentConfig;
 
 static void init_basic_windows() {
   selection_window = window_create();
@@ -13,7 +16,45 @@ static void init_basic_windows() {
 
 static void init_vars() {
   flight_init_vars(flight_window);
-  selection_init_vars(flight_window);
+  selection_init_vars(flight_window, &currentConfig);
+}
+
+static void create_default_config() {
+  currentConfig.num_tanks = 2;
+  currentConfig.interval = 15;
+  currentConfig.running = false;
+  currentConfig.time_paused = 0;
+}
+
+static void read_config() {
+  APP_LOG(APP_LOG_LEVEL_INFO, "Starting up");
+
+  bool has_config = persistence_has_config();
+  APP_LOG(APP_LOG_LEVEL_INFO, "Config: %s", has_config ? "yes" : "no");
+
+  if (has_config) {
+    persistence_read_config();
+
+    currentConfig = *persistence_get_config();
+
+    APP_LOG(APP_LOG_LEVEL_INFO, "Interval: %ld", currentConfig.interval);
+  } else {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Creating default config");
+    create_default_config();
+  }
+}
+
+
+void gather_current_config() {
+  currentConfig.num_tanks = 2; //TODO
+  currentConfig.interval = get_interval();
+  currentConfig.running = !get_paused();
+  currentConfig.time_paused = 0; //TODO
+}
+
+static void write_config() {
+  gather_current_config();
+  persistence_write_config(&currentConfig);
 }
 
 static void init(void) {
@@ -45,9 +86,12 @@ void schedule_wakeups() {
 }
 
 int main(void) {
+  read_config();
+
   init();
   app_event_loop();
 
+  write_config();
   schedule_wakeups();
 
   deinit();
