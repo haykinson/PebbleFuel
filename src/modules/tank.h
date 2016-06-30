@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pebble.h>
+#include "../modules/persistence.h"
 
 typedef struct Tank {
 	bool selected;
@@ -20,7 +21,7 @@ typedef struct Tank {
 	GRect remainingTextLocation;
 } Tank;
 
-Tank *tank_create();
+Tank *tank_create(PersistTankV1 *tankConfig);
 void tank_free(Tank *tank);
 
 void tank_set_pattern(Tank *tank, const uint32_t *pattern);

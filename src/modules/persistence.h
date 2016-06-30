@@ -18,5 +18,6 @@ typedef struct {
 bool persistence_has_config();
 bool persistence_read_config();
 PersistBaseDataV1 *persistence_get_config();
+PersistTankV1 **persistence_get_tank_config();
 
-void persistence_write_config(PersistBaseDataV1 *newConfig);
+void persistence_write_config(PersistBaseDataV1 *newConfig, PersistTankV1 **tankConfig);

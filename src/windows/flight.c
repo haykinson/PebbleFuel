@@ -7,6 +7,7 @@ static const uint32_t right_pattern[] = { 300, 100, 1300, 2000, 300, 100, 1300 }
 
 static Layer *airplane_layer;
 
+static bool initialized = false;
 static bool paused;
 static time_t pauseStartTime;
 static Tank* all_tanks[2];
@@ -22,6 +23,10 @@ static Tank* all_tanks[2];
 #define RIGHT_WING_COLOR GColorBlack
 #define UNFILLED_COLOR   GColorClear
 #endif
+
+Tank **flight_get_tanks() {
+  return all_tanks;
+}
 
   
 static void flight_draw_airplane(Layer *layer, GContext *context) {
@@ -92,6 +97,10 @@ static void toggle_pause() {
 }
 
 static void update_tick_on_wing(Tank * tank, time_t tick) {
+  if (!initialized) {
+  	return;
+  }
+  
   long pauseTime = 0;
   if (paused) {
     pauseTime = tick - pauseStartTime;
@@ -167,6 +176,8 @@ static void flight_window_load(Window *window) {
       }
     }  
   }
+
+  initialized = true;
 }
 
 static void destroy_layers(Tank *tank) {
@@ -232,9 +243,10 @@ static void flight_click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_SELECT, flight_select_click_handler);
 }
 
-void flight_init_vars(Window *flight_window) {
-  Tank *left_tank = tank_create();
-  Tank *right_tank = tank_create();
+void flight_init_vars(Window *flight_window, PersistTankV1 **tankConfig) {
+  Tank *left_tank = tank_create(tankConfig[0]);
+  Tank *right_tank = tank_create(tankConfig[1]);
+
   tank_set_pattern(left_tank, left_pattern);
   tank_set_pattern(right_tank, right_pattern);
   tank_set_colors(left_tank, LEFT_WING_COLOR, UNFILLED_COLOR);

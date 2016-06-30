@@ -6,7 +6,9 @@
 #include "../modules/util.h"
 #include "../modules/buzzer.h"
 #include "../modules/timing.h"
+#include "../modules/persistence.h"
 
-void flight_init_vars(Window *flight_window);
+Tank **flight_get_tanks();
+void flight_init_vars(Window *flight_window, PersistTankV1 **tankConfig);
 void flight_deinit_vars();
 void flight_init_window(Window *flight_window);

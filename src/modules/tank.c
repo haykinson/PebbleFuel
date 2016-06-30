@@ -2,10 +2,17 @@
 
 static const int MAX_TIME_TEXT_LEN = 9;
 
-Tank *tank_create() {
+Tank *tank_create(PersistTankV1 *tankConfig) {
 	Tank * tank = (Tank*) malloc(sizeof(Tank));
 	tank->elapsedBuffer = (char *) calloc(MAX_TIME_TEXT_LEN, sizeof(char));
 	tank->remainingBuffer = (char *) calloc(MAX_TIME_TEXT_LEN, sizeof(char));
+
+	if (NULL != tankConfig) {
+		tank->selected = tankConfig->selected;
+		tank->startTime = tankConfig->started;
+		tank->remainingTargetTime = tankConfig->started + 100; //TODO
+		//TODO elapsed
+	}
 	return tank;
 }
 
