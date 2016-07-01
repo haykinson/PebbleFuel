@@ -149,8 +149,10 @@ static void flight_window_load(Window *window) {
   layer_set_update_proc(airplane_layer, flight_draw_airplane);  
   
   layer_add_child(window_layer, airplane_layer);
-  
+
+	//TODO change init code  
   for (int i = 0; i < TANK_COUNT; i++) {
+
     Tank *tank = all_tanks[i];
     if (NULL != tank) {
       create_elapsed_text_layer(tank, window_layer, tank->elapsedTextLocation);
@@ -166,6 +168,7 @@ static void flight_window_load(Window *window) {
 }
 
 static void destroy_layers(Tank *tank) {
+	//TODO desotry
   text_layer_destroy(tank->elapsed);
   text_layer_destroy(tank->remaining);
 }

@@ -19,5 +19,5 @@ typedef struct TankUI {
 	GRect remainingTextLocation;
 } TankUI;
 
-TankUI *tankui_create_with_tank(Tank *tank);
-
+TankUI *tankui_create_with_tank(Tank *tank, Layer *windowLayer);
+void tankui_update_elapsed_time(TankUI *tankui);
