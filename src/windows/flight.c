@@ -132,21 +132,6 @@ static void flight_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   }
 }
 
-static void create_elapsed_text_layer(Tank * tank, Layer *window_layer, GRect where) {
-  tank->elapsed = text_layer_create(where);
-  text_layer_set_text(tank->elapsed, "00:00");
-  text_layer_set_font(tank->elapsed, fonts_get_system_font(FONT_KEY_DROID_SERIF_28_BOLD));
-  text_layer_set_text_alignment(tank->elapsed, GTextAlignmentRight);
-  layer_add_child(window_layer, text_layer_get_layer(tank->elapsed));
-}
-
-static void create_remaining_text_layer(Tank *tank, Layer *window_layer, GRect where) {
-  tank->remaining = text_layer_create(where);
-  text_layer_set_text(tank->remaining, "00:00");
-  text_layer_set_text_alignment(tank->remaining, GTextAlignmentRight);
-  layer_set_hidden(text_layer_get_layer(tank->remaining), !tank->selected);
-  layer_add_child(window_layer, text_layer_get_layer(tank->remaining));
-}
 
 static void flight_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
