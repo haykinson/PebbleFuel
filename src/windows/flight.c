@@ -10,7 +10,7 @@ static Layer *airplane_layer;
 static bool initialized = false;
 static bool paused;
 static time_t pauseStartTime;
-static Tank* all_tanks[2];
+static TankUI* all_tanks[2];
 
 #define TANK_COUNT 2
 
@@ -24,7 +24,7 @@ static Tank* all_tanks[2];
 #define UNFILLED_COLOR   GColorClear
 #endif
 
-Tank **flight_get_tanks() {
+TankUI **flight_get_tanks() {
   return all_tanks;
 }
 
@@ -43,22 +43,22 @@ static void flight_draw_airplane(Layer *layer, GContext *context) {
   graphics_draw_line(context, leftOfFuselage, rightOfFuselage);
 
   for (int i = 0; i < TANK_COUNT; i++) {
-    Tank *tank = all_tanks[i];
-    if (NULL != tank && tank->selected) {
-      graphics_context_set_fill_color(context, tank->enabledColor);
-      graphics_fill_rect(context, tank->location, 0, GCornerNone);  
+    TankUI *tankui = all_tanks[i];
+    if (NULL != tankui && tankui->tank->selected) {
+      graphics_context_set_fill_color(context, tankui->enabledColor);
+      graphics_fill_rect(context, tankui->location, 0, GCornerNone);
     } else {
-      graphics_context_set_fill_color(context, tank->disabledColor);
-      graphics_draw_rect(context, tank->location);      
+      graphics_context_set_fill_color(context, tankui->disabledColor);
+      graphics_draw_rect(context, tankui->location);      
     }
   }
 }
 
 static void reset_buzz_notification_need() {
   for (int i = 0; i < TANK_COUNT; i++) {
-    Tank *tank = all_tanks[i];
-    if (NULL != tank) {
-      tank->notified = false;
+    TankUI *tankui = all_tanks[i];
+    if (NULL != tankui) {
+      tankui->tank->notified = false;
     }
   }
 }
@@ -74,12 +74,12 @@ static void unpause() {
     long accumulatedPauseSeconds = time(NULL) - pauseStartTime;
 
     for (int i = 0; i < TANK_COUNT; i++) {
-      Tank *tank = all_tanks[i];
-      if (NULL != tank && tank->selected) {
-        tank->startTime += accumulatedPauseSeconds;
-        tank->remainingTargetTime += accumulatedPauseSeconds;
+      TankUI *tankui = all_tanks[i];
+      if (NULL != tankui && tankui->tank->selected) {
+        tankui->tank->startTime += accumulatedPauseSeconds;
+        tankui->tank->remainingTargetTime += accumulatedPauseSeconds;
 
-        set_remaining_target_time(tank->remainingTargetTime);
+        set_remaining_target_time(tankui->tank->remainingTargetTime);
       }
     }
   }
@@ -96,7 +96,7 @@ static void toggle_pause() {
     pause();
 }
 
-static void update_tick_on_wing(Tank * tank, time_t tick) {
+static void update_tick_on_wing(TankUI * tankui, time_t tick) {
   if (!initialized) {
   	return;
   }
@@ -106,15 +106,17 @@ static void update_tick_on_wing(Tank * tank, time_t tick) {
     pauseTime = tick - pauseStartTime;
   }
   
-  long timeDiff = (tick - tank->startTime) - pauseTime;
-  tank->lastDiff = timeDiff;
-  text_layer_set_text(tank->elapsed, format_seconds(timeDiff, tank->elapsedBuffer));
+  long timeDiff = (tick - tankui->tank->startTime) - pauseTime;
+  tankui->tank->lastDiff = timeDiff;
+
+  tankui_update_elapsed_time(tankui);
   
-  timeDiff = (tick - tank->remainingTargetTime) - pauseTime;
-  text_layer_set_text(tank->remaining, format_seconds(timeDiff, tank->remainingBuffer));
+  timeDiff = (tick - tankui->tank->remainingTargetTime) - pauseTime;
+
+  tankui_update_remaining_time(tankui, timeDiff);
   
   if (-timeDiff < THRESHOLD_FOR_BUZZ_NOTIFY) {
-    buzz_tank(tank);
+    buzz_tank(tankui->tank);
   }
 }
 
@@ -125,9 +127,9 @@ static void flight_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   time_t tick = mktime(tick_time); //local_mktime(tick_time);
   
   for (int i = 0; i < TANK_COUNT; i++) {
-    Tank *tank = all_tanks[i];
-    if (NULL != tank && tank->selected) {
-      update_tick_on_wing(tank, tick);
+    TankUI *tankui = all_tanks[i];
+    if (NULL != tankui && tankui->tank->selected) {
+      update_tick_on_wing(tankui, tick);
     }
   }
 }
@@ -150,66 +152,54 @@ static void flight_window_load(Window *window) {
   
   layer_add_child(window_layer, airplane_layer);
 
-	//TODO change init code  
+  //TODO change init code  
   for (int i = 0; i < TANK_COUNT; i++) {
-
-    Tank *tank = all_tanks[i];
-    if (NULL != tank) {
-      create_elapsed_text_layer(tank, window_layer, tank->elapsedTextLocation);
-      create_remaining_text_layer(tank, window_layer, tank->remainingTextLocation);
-
-      if (tank->startTime != 0) {
-        text_layer_set_text(tank->elapsed, format_seconds(tank->lastDiff, tank->elapsedBuffer));
-      }
-    }  
+    TankUI *tankui = all_tanks[i];
+    tankui_create_layers(tankui);
+    tankui_update_elapsed_time(tankui);
+    if (tankui->tank->selected) {
+    	layer_set_hidden(text_layer_get_layer(tankui->remainingLayer), false);
+    }
   }
 
   initialized = true;
-}
-
-static void destroy_layers(Tank *tank) {
-	//TODO desotry
-  text_layer_destroy(tank->elapsed);
-  text_layer_destroy(tank->remaining);
 }
   
 static void flight_window_unload(Window *window) {
   layer_destroy(airplane_layer);
 
   for (int i = 0; i < TANK_COUNT; i++) {
-    Tank *tank = all_tanks[i];
-    if (NULL != tank) {
-      destroy_layers(tank);
-    }
+  	TankUI *tankui = all_tanks[i];
+	tankui_destroy_layers(tankui);
   }
 }
 
-static void flight_click_handler(Tank *tank, Tank *otherTank) {
+static void flight_click_handler(TankUI *tankui, TankUI *otherTankUI) {
   time_t tick = time(NULL);
   unpause();
   
-  if (!tank->selected) {
-    layer_set_hidden(text_layer_get_layer(tank->remaining), false);
+  if (!tankui->tank->selected) {
+    layer_set_hidden(text_layer_get_layer(tankui->remainingLayer), false);
     
-    tank->remainingTargetTime = tick + get_interval() * 60;
-    tank->startTime += tick;
+    tankui->tank->remainingTargetTime = tick + get_interval() * 60;
+    tankui->tank->startTime += tick;
 
-    set_remaining_target_time(tank->remainingTargetTime);
+    set_remaining_target_time(tankui->tank->remainingTargetTime);
 
     reset_buzz_notification_need();
   }
-  if (otherTank->selected) {
-    layer_set_hidden(text_layer_get_layer(otherTank->remaining), true);
-    if (otherTank->startTime != 0) {
-      otherTank->startTime = otherTank->startTime - tick;
+  if (otherTankUI->tank->selected) {
+    layer_set_hidden(text_layer_get_layer(otherTankUI->remainingLayer), true);
+    if (otherTankUI->tank->startTime != 0) {
+      otherTankUI->tank->startTime = otherTankUI->tank->startTime - tick;
     }
   }
   
-  tank->selected = true;
-  otherTank->selected = false;
+  tankui->tank->selected = true;
+  otherTankUI->tank->selected = false;
   
   layer_mark_dirty(airplane_layer);
-  update_tick_on_wing(tank, tick);
+  update_tick_on_wing(tankui, tick);
 
 }
 
@@ -232,17 +222,18 @@ static void flight_click_config_provider(void *context) {
 }
 
 void flight_init_vars(Window *flight_window, PersistTankV1 **tankConfig) {
-  Tank *left_tank = tank_create(tankConfig[0]);
-  Tank *right_tank = tank_create(tankConfig[1]);
-
-  tank_set_pattern(left_tank, left_pattern);
-  tank_set_pattern(right_tank, right_pattern);
-  tank_set_colors(left_tank, LEFT_WING_COLOR, UNFILLED_COLOR);
-  tank_set_colors(right_tank, RIGHT_WING_COLOR, UNFILLED_COLOR);
-
-  //TODO remove dependency on UI here, or make a better dependency altogether
   Layer *window_layer = window_get_root_layer(flight_window);
   GRect bounds = layer_get_bounds(window_layer);
+
+  TankUI *left_tank = tankui_create_with_tank(tank_create(tankConfig[0]), window_layer);
+  TankUI *right_tank = tankui_create_with_tank(tank_create(tankConfig[1]), window_layer);
+
+  tank_set_pattern(left_tank->tank, left_pattern);
+  tank_set_pattern(right_tank->tank, right_pattern);
+  tankui_set_colors(left_tank, LEFT_WING_COLOR, UNFILLED_COLOR);
+  tankui_set_colors(right_tank, RIGHT_WING_COLOR, UNFILLED_COLOR);
+
+  //TODO remove dependency on UI here, or make a better dependency altogether
 
   GPoint leftWingTopLeft = GPoint(120, 25);
   GPoint rightWingTopLeft = GPoint(120, 94);
@@ -250,13 +241,13 @@ void flight_init_vars(Window *flight_window, PersistTankV1 **tankConfig) {
   GRect leftWing = (GRect) { .origin = leftWingTopLeft, .size = wingSize };
   GRect rightWing = (GRect) { .origin = rightWingTopLeft, .size = wingSize };
 
-  tank_set_location(left_tank, leftWing);
-  tank_set_location(right_tank, rightWing);
+  tankui_set_location(left_tank, leftWing);
+  tankui_set_location(right_tank, rightWing);
 
-  tank_set_text_locations(left_tank, 
+  tankui_set_text_locations(left_tank, 
     (GRect) { .origin = { 3, 27 },  .size = { bounds.size.w - 30, 28 }},
     (GRect) { .origin = { 3, 55 },  .size = { bounds.size.w - 30, 20 }});
-  tank_set_text_locations(right_tank, 
+  tankui_set_text_locations(right_tank, 
     (GRect) { .origin = { 3, 125 }, .size = { bounds.size.w - 30, 28 }},
     (GRect) { .origin = { 3, 112 },  .size = { bounds.size.w - 30, 20 }});
 
@@ -266,9 +257,10 @@ void flight_init_vars(Window *flight_window, PersistTankV1 **tankConfig) {
 
 void flight_deinit_vars() {
   for (int i = 0; i < TANK_COUNT; i++) {
-	Tank *tank = all_tanks[i];
-    if (NULL != tank) {
-      tank_free(tank);
+	TankUI *tankui = all_tanks[i];
+    if (NULL != tankui) {
+      tank_free(tankui->tank);
+      tankui_destroy(tankui);
     }
   }
 }

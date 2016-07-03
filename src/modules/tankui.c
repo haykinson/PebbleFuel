@@ -16,7 +16,7 @@ static void create_remaining_text_layer(TankUI *tankui) {
 	layer_add_child(tankui->windowLayer, text_layer_get_layer(tankui->remainingLayer));
 }
 
-static void tankui_create_layers(TankUI *tankui) {
+void tankui_create_layers(TankUI *tankui) {
 	if (NULL != tankui) {
 		create_elapsed_text_layer(tankui);
 		create_remaining_text_layer(tankui);
@@ -25,13 +25,15 @@ static void tankui_create_layers(TankUI *tankui) {
 	}  
 }
 
-static void tankui_destroy_layers(TankUI *tankui) {
+void tankui_destroy_layers(TankUI *tankui) {
 	if (NULL != tankui) {
 		if (NULL != tankui->elapsedLayer) {
 			text_layer_destroy(tankui->elapsedLayer);
+			tankui->elapsedLayer = NULL;
 		}
 		if (NULL != tankui->remainingLayer) {
 			text_layer_destroy(tankui->remainingLayer);
+			tankui->remainingLayer = NULL;
 		}
 	}
 }
@@ -57,8 +59,16 @@ void tankui_set_text_locations(TankUI *tankui, GRect elapsedTextLocation, GRect 
 }
 
 void tankui_update_elapsed_time(TankUI *tankui) {
-	if (tankui->tank->startTime != 0) {
+	if (NULL != tankui && NULL != tankui->elapsedLayer && tankui->tank->startTime != 0) {
 		text_layer_set_text(tankui->elapsedLayer, format_seconds(tankui->tank->lastDiff, tankui->elapsedBuffer));
+	} else {
+	    APP_LOG(APP_LOG_LEVEL_INFO, "TankUI null or start time zero: %s", tankui == NULL ? "tankui null" : "starttime zero");
+	}
+}
+
+void tankui_update_remaining_time(TankUI *tankui, time_t timeDiff) {
+	if (NULL != tankui && NULL != tankui->remainingLayer) {
+		text_layer_set_text(tankui->remainingLayer, format_seconds(timeDiff, tankui->remainingBuffer));
 	}
 }
 
@@ -69,9 +79,6 @@ TankUI *tankui_create_with_tank(Tank *tank, Layer *windowLayer) {
 
 	tankui->elapsedBuffer = (char *) calloc(MAX_TIME_TEXT_LEN, sizeof(char));
 	tankui->remainingBuffer = (char *) calloc(MAX_TIME_TEXT_LEN, sizeof(char));
-
-
-	tankui_create_layers(tankui);
 
 	return tankui;
 }

@@ -37,6 +37,8 @@ static void create_default_config() {
 }
 
 static void read_config() {
+  create_default_config();
+  /*
   APP_LOG(APP_LOG_LEVEL_INFO, "Starting up");
 
   bool has_config = persistence_has_config();
@@ -59,6 +61,7 @@ static void read_config() {
     APP_LOG(APP_LOG_LEVEL_INFO, "Creating default config");
     create_default_config();
   }
+  */
 }
 
 
@@ -78,13 +81,13 @@ void gather_current_config() {
     free(tankConfig);
   }
 
-  Tank **real_tanks = flight_get_tanks();
+  TankUI **real_tanks = flight_get_tanks();
 
   tankConfig = malloc(sizeof(PersistTankV1 *) * currentConfig.num_tanks);
   for (int i = 0; i < 2; i++) {
     tankConfig[i] = malloc(sizeof(PersistTankV1));
-    tankConfig[i]->selected = real_tanks[i]->selected; 
-    tankConfig[i]->started = real_tanks[i]->startTime;
+    tankConfig[i]->selected = real_tanks[i]->tank->selected; 
+    tankConfig[i]->started = real_tanks[i]->tank->startTime;
     tankConfig[i]->elapsed = 0; //TODO
   }
 
@@ -132,8 +135,8 @@ int main(void) {
   init();
   app_event_loop();
 
-  write_config();
-  schedule_wakeups();
+  //write_config();
+  //schedule_wakeups();
 
   deinit();
 }

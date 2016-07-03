@@ -15,7 +15,4 @@ typedef struct Tank {
 
 Tank *tank_create(PersistTankV1 *tankConfig);
 void tank_free(Tank *tank);
-
 void tank_set_pattern(Tank *tank, const uint32_t *pattern);
-void tank_set_location(Tank *tank, GRect location);
-void tank_set_text_locations(Tank *tank, GRect elapsedTextLocation, GRect remainingTextLocation);
