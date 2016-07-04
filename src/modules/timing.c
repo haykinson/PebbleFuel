@@ -3,6 +3,8 @@
 static int interval;
 static time_t remaining_target_time;
 static bool paused = true;
+static Tank **tanks_ = NULL;
+static int numTanks_ = 0;
 
 int get_interval() {
 	return interval;
@@ -26,4 +28,28 @@ void set_paused(bool is_paused) {
 
 bool get_paused() {
 	return paused;
+}
+
+void timing_set_tanks(Tank **tanks, int numTanks) {
+	tanks_ = tanks;
+	numTanks_ = numTanks;
+}
+
+void timing_update_tick(struct tm *tick_time, TimeUnits units_changed) {
+	if (NULL == tanks_) {
+		return;
+	}
+
+	if (NULL == tick_time) {
+		return;
+	}
+
+	time_t tick = mktime(tick_time);
+
+	for (int i = 0; i < numTanks_; i++) {
+		Tank *tank = tanks_[i];
+		if (tank->selected) {
+			tank_update_tick(tank, tick);
+		}
+ 	}
 }

@@ -22,6 +22,10 @@ void tank_free(Tank *tank) {
 }
 
 void tank_set_pattern(Tank *tank, const uint32_t *pattern) {
+	if (NULL == tank) {
+		return;
+	}
+
 	//if previously set, free it
 	if (NULL != tank->vibePattern) {
 		free(tank->vibePattern);
@@ -33,4 +37,22 @@ void tank_set_pattern(Tank *tank, const uint32_t *pattern) {
     tank->vibePattern->num_segments = ARRAY_LENGTH(pattern);
 }
 
+void tank_set_tick_callback(Tank *tank, void (*callback)(Tank *, time_t)) {
+	if (NULL == tank) {
+		return;
+	}
 
+	tank->callback = callback;
+}
+
+void tank_update_tick(Tank *tank, time_t tick) {
+	if (NULL == tank) {
+		return;
+	}
+
+	//TODO
+
+	if (NULL != tank->callback) {
+		tank->callback(tank, tick);
+	}
+}
