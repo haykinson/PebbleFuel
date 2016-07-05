@@ -9,7 +9,6 @@ static Layer *airplane_layer;
 
 static bool initialized = false;
 static bool paused;
-static time_t pauseStartTime;
 static TankUI* all_tanks[2];
 
 #define TANK_COUNT 2
@@ -64,27 +63,25 @@ static void reset_buzz_notification_need() {
 }
 
 static void pause() {
-  pauseStartTime = time(NULL);
+	//TODO make better!
+	if (all_tanks[0]->tank->selected) {
+		tank_pause(all_tanks[0]->tank);
+	} else {
+		tank_pause(all_tanks[1]->tank);
+	}
+
   paused = true;
   set_paused(paused);
 }
 
 static void unpause() {
-  if (pauseStartTime > 0) {
-    long accumulatedPauseSeconds = time(NULL) - pauseStartTime;
+	//TODO make better!
+	if (all_tanks[0]->tank->selected) {
+		tank_unpause(all_tanks[0]->tank, time(NULL));
+	} else {
+		tank_unpause(all_tanks[1]->tank, time(NULL));
+	}
 
-    for (int i = 0; i < TANK_COUNT; i++) {
-      TankUI *tankui = all_tanks[i];
-      if (NULL != tankui && tankui->tank->selected) {
-        tankui->tank->startTime += accumulatedPauseSeconds;
-        tankui->tank->remainingTargetTime += accumulatedPauseSeconds;
-
-        set_remaining_target_time(tankui->tank->remainingTargetTime);
-      }
-    }
-  }
-  
-  pauseStartTime = 0;
   paused = false;
   set_paused(paused);
 }
@@ -95,45 +92,6 @@ static void toggle_pause() {
   else
     pause();
 }
-
-static void update_tick_on_wing(TankUI * tankui, time_t tick) {
-  if (!initialized) {
-  	return;
-  }
-  
-  long pauseTime = 0;
-  if (paused) {
-    pauseTime = tick - pauseStartTime;
-  }
-  
-  long timeDiff = (tick - tankui->tank->startTime) - pauseTime;
-  tankui->tank->lastDiff = timeDiff;
-
-  tankui_update_elapsed_time(tankui);
-  
-  timeDiff = (tick - tankui->tank->remainingTargetTime) - pauseTime;
-
-  tankui_update_remaining_time(tankui, timeDiff);
-  
-  if (-timeDiff < THRESHOLD_FOR_BUZZ_NOTIFY) {
-    buzz_tank(tankui->tank);
-  }
-}
-
-static void flight_tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  if (NULL == tick_time)
-    return;
-  
-  time_t tick = mktime(tick_time); //local_mktime(tick_time);
-  
-  for (int i = 0; i < TANK_COUNT; i++) {
-    TankUI *tankui = all_tanks[i];
-    if (NULL != tankui && tankui->tank->selected) {
-      update_tick_on_wing(tankui, tick);
-    }
-  }
-}
-
 
 static void flight_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
@@ -181,25 +139,27 @@ static void flight_click_handler(TankUI *tankui, TankUI *otherTankUI) {
   if (!tankui->tank->selected) {
     layer_set_hidden(text_layer_get_layer(tankui->remainingLayer), false);
     
-    tankui->tank->remainingTargetTime = tick + get_interval() * 60;
-    tankui->tank->startTime += tick;
+    tank_unpause(tankui->tank, tick);
 
-    set_remaining_target_time(tankui->tank->remainingTargetTime);
+    //TODO this feels awkward...
+    if (!tankui->tank->initialized) {
+	    tank_set_started(tankui->tank, tick);
+    	tank_set_expires(tankui->tank, tick + get_interval() * 60);
+    }
 
     reset_buzz_notification_need();
   }
   if (otherTankUI->tank->selected) {
     layer_set_hidden(text_layer_get_layer(otherTankUI->remainingLayer), true);
-    if (otherTankUI->tank->startTime != 0) {
-      otherTankUI->tank->startTime = otherTankUI->tank->startTime - tick;
-    }
+    tank_pause(otherTankUI->tank);
   }
+
   
   tankui->tank->selected = true;
   otherTankUI->tank->selected = false;
   
   layer_mark_dirty(airplane_layer);
-  update_tick_on_wing(tankui, tick);
+  //TODO force update right now
 
 }
 
@@ -227,6 +187,9 @@ void flight_init_vars(Window *flight_window, PersistTankV1 **tankConfig) {
 
   TankUI *left_tank = tankui_create_with_tank(tank_create(tankConfig[0]), window_layer);
   TankUI *right_tank = tankui_create_with_tank(tank_create(tankConfig[1]), window_layer);
+
+  tank_set_tick_callback(left_tank->tank, tankui_update_tick, left_tank);
+  tank_set_tick_callback(right_tank->tank, tankui_update_tick, right_tank);
 
   tank_set_pattern(left_tank->tank, left_pattern);
   tank_set_pattern(right_tank->tank, right_pattern);
@@ -271,6 +234,13 @@ void flight_init_window(Window *flight_window) {
     .load = flight_window_load,
     .unload = flight_window_unload,
   });
+
+  Tank **tanks = malloc(sizeof(Tank *) * TANK_COUNT);
+  for (int i = 0; i < TANK_COUNT; i++) {
+  	tanks[i] = all_tanks[i]->tank;
+  }
+
+  timing_set_tanks(tanks, TANK_COUNT);
   
-  tick_timer_service_subscribe(SECOND_UNIT, flight_tick_handler);
+  tick_timer_service_subscribe(SECOND_UNIT, timing_update_tick);
 }

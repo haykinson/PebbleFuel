@@ -59,16 +59,16 @@ void tankui_set_text_locations(TankUI *tankui, GRect elapsedTextLocation, GRect 
 }
 
 void tankui_update_elapsed_time(TankUI *tankui) {
-	if (NULL != tankui && NULL != tankui->elapsedLayer && tankui->tank->startTime != 0) {
-		text_layer_set_text(tankui->elapsedLayer, format_seconds(tankui->tank->lastDiff, tankui->elapsedBuffer));
+	if (NULL != tankui && NULL != tankui->elapsedLayer && tankui->tank->started != 0) {
+		text_layer_set_text(tankui->elapsedLayer, format_seconds(tank_get_elapsed(tankui->tank), tankui->elapsedBuffer));
 	} else {
 	    APP_LOG(APP_LOG_LEVEL_INFO, "TankUI null or start time zero: %s", tankui == NULL ? "tankui null" : "starttime zero");
 	}
 }
 
-void tankui_update_remaining_time(TankUI *tankui, time_t timeDiff) {
+void tankui_update_remaining_time(TankUI *tankui) {
 	if (NULL != tankui && NULL != tankui->remainingLayer) {
-		text_layer_set_text(tankui->remainingLayer, format_seconds(timeDiff, tankui->remainingBuffer));
+		text_layer_set_text(tankui->remainingLayer, format_seconds(tank_get_remaining(tankui->tank), tankui->remainingBuffer));
 	}
 }
 
@@ -99,3 +99,16 @@ void tankui_destroy(TankUI *tankui) {
 		free(tankui);
 	}
 }
+
+void tankui_update_tick(Tank *tank, time_t tick, void *updateContext) {
+	//APP_LOG(APP_LOG_LEVEL_INFO, "Calling tankui tick update");
+
+	TankUI *tankui = updateContext;
+	if (NULL == tankui) {
+		return;
+	}
+
+	tankui_update_elapsed_time(tankui);
+	tankui_update_remaining_time(tankui);
+}
+

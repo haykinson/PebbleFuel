@@ -87,7 +87,7 @@ void gather_current_config() {
   for (int i = 0; i < 2; i++) {
     tankConfig[i] = malloc(sizeof(PersistTankV1));
     tankConfig[i]->selected = real_tanks[i]->tank->selected; 
-    tankConfig[i]->started = real_tanks[i]->tank->startTime;
+    tankConfig[i]->started = real_tanks[i]->tank->started;
     tankConfig[i]->elapsed = 0; //TODO
   }
 

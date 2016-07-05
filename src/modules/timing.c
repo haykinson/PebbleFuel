@@ -36,11 +36,15 @@ void timing_set_tanks(Tank **tanks, int numTanks) {
 }
 
 void timing_update_tick(struct tm *tick_time, TimeUnits units_changed) {
+	//APP_LOG(APP_LOG_LEVEL_INFO, "Calling timing tick update");
+
 	if (NULL == tanks_) {
+		APP_LOG(APP_LOG_LEVEL_INFO, "tanks not set");
 		return;
 	}
 
 	if (NULL == tick_time) {
+		APP_LOG(APP_LOG_LEVEL_INFO, "no tick time");
 		return;
 	}
 
