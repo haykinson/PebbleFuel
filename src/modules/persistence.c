@@ -11,8 +11,12 @@ static uint32_t key_time_paused = 4; //int; timestamp when paused, or 0
 
 static uint32_t key_base_for_offsets = 10000;
 static uint32_t keyoffset_tank_selected = 0; //bool
-static uint32_t keyoffset_tank_started = 1; //int; timestamp when started
-static uint32_t keyoffset_tank_elapsed = 2; //int; total time elapsed
+static uint32_t keyoffset_tank_paused = 1; //bool
+static uint32_t keyoffset_tank_initialized = 2; //bool
+static uint32_t keyoffset_tank_started = 3; //int; timestamp when started
+static uint32_t keyoffset_tank_elapsed = 4; //int; total time elapsed since started
+static uint32_t keyoffset_tank_expires = 5; //int; timestamp when expires
+static uint32_t keyoffset_tank_remaining = 6; //int; total time until expires
 
 static PersistBaseDataV1 baseData;
 static PersistTankV1 **tankData;
@@ -50,8 +54,12 @@ bool persistence_read_config() {
 	for (int i = 0; i < (int) baseData.num_tanks; i++) {
 		PersistTankV1 *tank = malloc(sizeof(PersistTankV1));
 		tank->selected = persist_read_bool(key_base_for_offsets * (i+1) + keyoffset_tank_selected);
+		tank->paused = persist_read_bool(key_base_for_offsets * (i+1) + keyoffset_tank_paused);
+		tank->initialized = persist_read_bool(key_base_for_offsets * (i+1) + keyoffset_tank_initialized);
 		tank->started = (time_t) persist_read_int(key_base_for_offsets * (i+1) + keyoffset_tank_started);
 		tank->elapsed = (time_t) persist_read_int(key_base_for_offsets * (i+1) + keyoffset_tank_elapsed);
+		tank->expires = (time_t) persist_read_int(key_base_for_offsets * (i+1) + keyoffset_tank_expires);
+		tank->remaining = (time_t) persist_read_int(key_base_for_offsets * (i+1) + keyoffset_tank_remaining);
 
 		tankData[i] = tank;
 	}
@@ -97,7 +105,11 @@ void persistence_write_config(PersistBaseDataV1 *newConfig, PersistTankV1 **tank
 	for (int i = 0; i < (int) baseData.num_tanks; i++) {
 		PersistTankV1 *tank = tankConfig[i];
 		persist_write_bool(key_base_for_offsets * (i+1) + keyoffset_tank_selected, tank->selected);
+		persist_write_bool(key_base_for_offsets * (i+1) + keyoffset_tank_paused, tank->paused);
+		persist_write_bool(key_base_for_offsets * (i+1) + keyoffset_tank_initialized, tank->initialized);
 		persist_write_int(key_base_for_offsets * (i+1) + keyoffset_tank_started, tank->started);
 		persist_write_int(key_base_for_offsets * (i+1) + keyoffset_tank_elapsed, tank->elapsed);
+		persist_write_int(key_base_for_offsets * (i+1) + keyoffset_tank_expires, tank->expires);
+		persist_write_int(key_base_for_offsets * (i+1) + keyoffset_tank_remaining, tank->remaining);
 	}
 }

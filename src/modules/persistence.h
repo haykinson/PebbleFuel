@@ -11,8 +11,12 @@ typedef struct {
 
 typedef struct {
 	bool selected;
+	bool paused;
+	bool initialized;
 	time_t started;
 	time_t elapsed;
+	time_t expires;
+	time_t remaining;
 } PersistTankV1;
 
 bool persistence_has_config();
