@@ -63,24 +63,28 @@ static void reset_buzz_notification_need() {
 }
 
 static void pause() {
-	//TODO make better!
-	if (all_tanks[0]->tank->selected) {
-		tank_pause(all_tanks[0]->tank);
-	} else {
-		tank_pause(all_tanks[1]->tank);
-	}
+  for(int i = 0; i < TANK_COUNT; i++) {
+    TankUI *tankui = all_tanks[i];
+    if (NULL != tankui && NULL != tankui->tank) {
+      if (tankui->tank->selected) {
+        tank_pause(tankui->tank);
+      }
+    }
+  }
 
   paused = true;
   set_paused(paused);
 }
 
 static void unpause() {
-	//TODO make better!
-	if (all_tanks[0]->tank->selected) {
-		tank_unpause(all_tanks[0]->tank, time(NULL));
-	} else {
-		tank_unpause(all_tanks[1]->tank, time(NULL));
-	}
+  for(int i = 0; i < TANK_COUNT; i++) {
+    TankUI *tankui = all_tanks[i];
+    if (NULL != tankui && NULL != tankui->tank) {
+      if (tankui->tank->selected) {
+        tank_unpause(tankui->tank, time(NULL));
+      }
+    }
+  }
 
   paused = false;
   set_paused(paused);
@@ -134,12 +138,15 @@ static void flight_window_unload(Window *window) {
 
 static void flight_click_handler(TankUI *tankui, TankUI *otherTankUI) {
   time_t tick = time(NULL);
-  unpause();
+  //unpause();
   
   if (!tankui->tank->selected) {
     layer_set_hidden(text_layer_get_layer(tankui->remainingLayer), false);
     
     tank_unpause(tankui->tank, tick);
+    if (paused) {
+      paused = false;
+    }
 
     //TODO this feels awkward...
     if (!tankui->tank->initialized) {

@@ -1,6 +1,6 @@
 #include "tankui.h"
 
-static void create_elapsed_text_layer(TankUI * tankui) {
+static void create_elapsed_text_layer(TankUI *tankui) {
 	tankui->elapsedLayer = text_layer_create(tankui->elapsedTextLocation);
 	text_layer_set_text(tankui->elapsedLayer, "00:00");
 	text_layer_set_font(tankui->elapsedLayer, fonts_get_system_font(FONT_KEY_DROID_SERIF_28_BOLD));
