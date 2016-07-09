@@ -108,6 +108,10 @@ time_t tank_get_elapsed(Tank *tank) {
 		return 0;
 	}
 
+	if (!tank->initialized) {
+		return 0;
+	}
+
 	//APP_LOG(APP_LOG_LEVEL_INFO, "Get Elapsed: last tick %ld, started %ld", tank->latestTick, tank->started);
 
 	return tank->latestTick - tank->started;
@@ -118,8 +122,26 @@ time_t tank_get_remaining(Tank *tank) {
 		return 0;
 	}
 
+	if (!tank->initialized) {
+		return 0;
+	}
+
 	//APP_LOG(APP_LOG_LEVEL_INFO, "Get remaining: last tick %ld, expires %ld", tank->latestTick, tank->expires);
 
 	return tank->latestTick - tank->expires;
 }
 
+void tank_reset(Tank *tank) {
+	if (NULL == tank) {
+		return;
+	}
+
+	tank->selected = false;
+	tank->started = 0;
+	tank->expires = 0;
+	tank->paused = true;
+	tank->initialized = false;
+	tank->elapsed = 0;
+	tank->remaining = 0;
+	tank->latestTick = 0;
+}

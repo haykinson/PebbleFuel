@@ -59,7 +59,7 @@ void tankui_set_text_locations(TankUI *tankui, GRect elapsedTextLocation, GRect 
 }
 
 void tankui_update_elapsed_time(TankUI *tankui) {
-	if (NULL != tankui && NULL != tankui->elapsedLayer && tankui->tank->started != 0) {
+	if (NULL != tankui && NULL != tankui->elapsedLayer) {
 		text_layer_set_text(tankui->elapsedLayer, format_seconds(tank_get_elapsed(tankui->tank), tankui->elapsedBuffer));
 	} else {
 	    APP_LOG(APP_LOG_LEVEL_INFO, "TankUI null or start time zero: %s", tankui == NULL ? "tankui null" : "starttime zero");

@@ -142,9 +142,7 @@ static void flight_click_handler(TankUI *tankui, TankUI *otherTankUI) {
   time_t tick = time(NULL);
   //unpause();
   
-  if (!tankui->tank->selected) {
-    layer_set_hidden(text_layer_get_layer(tankui->remainingLayer), false);
-    
+  if (!tankui->tank->selected) {    
     tank_unpause(tankui->tank, tick);
     if (paused) {
       paused = false;
@@ -156,6 +154,7 @@ static void flight_click_handler(TankUI *tankui, TankUI *otherTankUI) {
     	tank_set_expires(tankui->tank, tick + get_interval() * 60);
     }
 
+    layer_set_hidden(text_layer_get_layer(tankui->remainingLayer), false);
     reset_buzz_notification_need();
   }
   if (otherTankUI->tank->selected) {
@@ -184,10 +183,33 @@ static void flight_select_click_handler(ClickRecognizerRef recognizer, void *con
   toggle_pause();
 }
 
+static void flight_select_long_click_handler(ClickRecognizerRef recognizer, void *context) {
+  if (!paused) {
+  	pause();
+  }
+
+  for (int i = 0; i < TANK_COUNT; i++) {
+  	TankUI *tankui = all_tanks[i];
+  	if (NULL != tankui) {
+	  	if (tankui->tank->selected) {
+		    layer_set_hidden(text_layer_get_layer(tankui->remainingLayer), true);
+	  	}
+
+  		tank_reset(tankui->tank);
+
+  		tankui_update_elapsed_time(tankui);
+  	}
+  }
+
+  layer_mark_dirty(airplane_layer);
+}
+
+
 static void flight_click_config_provider(void *context) {
   window_single_click_subscribe(BUTTON_ID_UP, flight_up_click_handler);
   window_single_click_subscribe(BUTTON_ID_DOWN, flight_down_click_handler);
   window_single_click_subscribe(BUTTON_ID_SELECT, flight_select_click_handler);
+  window_long_click_subscribe(BUTTON_ID_SELECT, 0, flight_select_long_click_handler, NULL);
 }
 
 void flight_init_vars(Window *flight_window, PersistTankV1 **tankConfig) {

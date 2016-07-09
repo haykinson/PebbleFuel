@@ -35,4 +35,4 @@ void tank_pause(Tank *tank);
 void tank_unpause(Tank *tank, time_t tick);
 time_t tank_get_elapsed(Tank *tank);
 time_t tank_get_remaining(Tank *tank);
-
+void tank_reset(Tank *tank);
