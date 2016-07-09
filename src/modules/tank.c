@@ -18,6 +18,7 @@ void tank_free(Tank *tank) {
 	if (NULL != tank) {
 		if (NULL != tank->vibePattern) {
 			free(tank->vibePattern);
+			tank->vibePattern = NULL;
 		}
  		free(tank);
 	}

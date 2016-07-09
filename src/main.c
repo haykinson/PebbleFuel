@@ -64,6 +64,17 @@ static void read_config() {
   */
 }
 
+static void cleanup_config() {
+  if (NULL != tankConfig) {
+    for (int i = 0; i < (int)currentConfig.num_tanks; i++) {
+      if (NULL != tankConfig[i]) {
+        free(tankConfig[i]);
+        tankConfig[i] = NULL;
+      }
+    }
+    tankConfig = NULL;
+  }
+}
 
 void gather_current_config() {
   currentConfig.num_tanks = 2; //TODO
@@ -71,15 +82,7 @@ void gather_current_config() {
   currentConfig.running = !get_paused();
   currentConfig.time_paused = 0; //TODO
 
-  //reset tank config
-  if (NULL != tankConfig) {
-    for (int i = 0; i < (int) currentConfig.num_tanks; i++) {
-      if (NULL != tankConfig[i]) {
-        free(tankConfig[i]);
-      }
-    }
-    free(tankConfig);
-  }
+  cleanup_config();
 
   TankUI **real_tanks = flight_get_tanks();
 
@@ -90,9 +93,7 @@ void gather_current_config() {
     tankConfig[i]->started = real_tanks[i]->tank->started;
     tankConfig[i]->elapsed = 0; //TODO
   }
-
 }
-
 
 static void write_config() {
   gather_current_config();
@@ -114,11 +115,15 @@ static void init(void) {
 static void deinit(void) {
   tick_timer_service_unsubscribe(); 
 
+  flight_deinit_window(flight_window);
+
   window_destroy(selection_window);
   window_destroy(flight_window);
   
   selection_deinit_vars();
   flight_deinit_vars();
+
+  cleanup_config();
 }
 
 void schedule_wakeups() {

@@ -6,6 +6,7 @@ static const uint32_t left_pattern[] = { 200, 100, 200, 100, 200, 100, 200, 2000
 static const uint32_t right_pattern[] = { 300, 100, 1300, 2000, 300, 100, 1300 };
 
 static Layer *airplane_layer;
+static StatusBarLayer *status_bar;
 
 static bool initialized = false;
 static bool paused;
@@ -101,7 +102,7 @@ static void flight_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
-  StatusBarLayer *status_bar = status_bar_layer_create();
+  status_bar = status_bar_layer_create();
   status_bar_layer_set_separator_mode(status_bar, StatusBarLayerSeparatorModeDotted);
 #if defined(PBL_COLOR)
   status_bar_layer_set_colors(status_bar, GColorCeleste, GColorBulgarianRose);
@@ -129,6 +130,7 @@ static void flight_window_load(Window *window) {
   
 static void flight_window_unload(Window *window) {
   layer_destroy(airplane_layer);
+  status_bar_layer_destroy(status_bar);
 
   for (int i = 0; i < TANK_COUNT; i++) {
   	TankUI *tankui = all_tanks[i];
@@ -230,7 +232,9 @@ void flight_deinit_vars() {
 	TankUI *tankui = all_tanks[i];
     if (NULL != tankui) {
       tank_free(tankui->tank);
+      tankui->tank = NULL;
       tankui_destroy(tankui);
+      all_tanks[i] = NULL;
     }
   }
 }
@@ -250,4 +254,8 @@ void flight_init_window(Window *flight_window) {
   timing_set_tanks(tanks, TANK_COUNT);
   
   tick_timer_service_subscribe(SECOND_UNIT, timing_update_tick);
+}
+
+void flight_deinit_window(Window *flight_window) {
+  timing_deinit();
 }

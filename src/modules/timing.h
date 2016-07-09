@@ -11,3 +11,4 @@ void set_paused(bool is_paused);
 bool get_paused();
 void timing_set_tanks(Tank **tanks, int numTanks);
 void timing_update_tick(struct tm *tick_time, TimeUnits units_changed);
+void timing_deinit();

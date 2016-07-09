@@ -57,3 +57,9 @@ void timing_update_tick(struct tm *tick_time, TimeUnits units_changed) {
 		}
  	}
 }
+
+void timing_deinit() {
+	if (NULL != tanks_) {
+		free(tanks_);
+	}	
+}
