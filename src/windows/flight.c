@@ -149,10 +149,10 @@ static void flight_click_handler(TankUI *tankui, TankUI *otherTankUI) {
     }
 
     //TODO this feels awkward...
-    if (!tankui->tank->initialized) {
+    //if (!tankui->tank->initialized) {
 	    tank_set_started(tankui->tank, tick);
     	tank_set_expires(tankui->tank, tick + get_interval() * 60);
-    }
+    //}
 
     layer_set_hidden(text_layer_get_layer(tankui->remainingLayer), false);
     reset_buzz_notification_need();

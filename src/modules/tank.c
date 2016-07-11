@@ -7,9 +7,12 @@ Tank *tank_create(PersistTankV1 *tankConfig) {
 
 	if (NULL != tankConfig) {
 		tank->selected = tankConfig->selected;
-		//tank->startTime = tankConfig->started;
-		//tank->remainingTargetTime = tankConfig->started + 100; //TODO
-		//TODO elapsed
+		tank->paused = tankConfig->paused;
+		tank->initialized = tankConfig->initialized;
+		tank->started = tankConfig->started;
+		tank->expires = tankConfig->expires;
+		tank->elapsed = tankConfig->elapsed;
+		tank->remaining = tankConfig->remaining;
 	}
 	return tank;
 }
@@ -114,7 +117,11 @@ time_t tank_get_elapsed(Tank *tank) {
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "Get Elapsed: last tick %ld, started %ld", tank->latestTick, tank->started);
 
-	return tank->latestTick - tank->started;
+	if (tank->paused) {
+		return tank->elapsed;
+	} else {
+		return tank->latestTick - tank->started + tank->elapsed;
+	}
 }
 
 time_t tank_get_remaining(Tank *tank) {
@@ -126,9 +133,13 @@ time_t tank_get_remaining(Tank *tank) {
 		return 0;
 	}
 
-	//APP_LOG(APP_LOG_LEVEL_INFO, "Get remaining: last tick %ld, expires %ld", tank->latestTick, tank->expires);
+	APP_LOG(APP_LOG_LEVEL_INFO, "Get remaining: last tick %ld, expires %ld", tank->latestTick, tank->expires);
 
-	return tank->latestTick - tank->expires;
+	if (tank->paused) {
+		return tank->remaining;
+	} else {
+		return tank->latestTick - tank->expires;
+	}
 }
 
 void tank_reset(Tank *tank) {

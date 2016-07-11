@@ -32,13 +32,17 @@ static void create_default_config() {
     tankConfig[i] = malloc(sizeof(PersistTankV1));
     tankConfig[i]->selected = false;
     tankConfig[i]->started = 0;
+    tankConfig[i]->expires = 0;
+    tankConfig[i]->remaining = 0;
     tankConfig[i]->elapsed = 0;
+    tankConfig[i]->initialized = false;
+    tankConfig[i]->paused = true;
   }
 }
 
 static void read_config() {
-  create_default_config();
-  /*
+  //create_default_config();
+  
   APP_LOG(APP_LOG_LEVEL_INFO, "Starting up");
 
   bool has_config = persistence_has_config();
@@ -61,7 +65,6 @@ static void read_config() {
     APP_LOG(APP_LOG_LEVEL_INFO, "Creating default config");
     create_default_config();
   }
-  */
 }
 
 static void cleanup_config() {
@@ -72,6 +75,7 @@ static void cleanup_config() {
         tankConfig[i] = NULL;
       }
     }
+    free(tankConfig);
     tankConfig = NULL;
   }
 }
@@ -86,12 +90,18 @@ void gather_current_config() {
 
   TankUI **real_tanks = flight_get_tanks();
 
+  //TODO pause??
+
   tankConfig = malloc(sizeof(PersistTankV1 *) * currentConfig.num_tanks);
   for (int i = 0; i < 2; i++) {
     tankConfig[i] = malloc(sizeof(PersistTankV1));
     tankConfig[i]->selected = real_tanks[i]->tank->selected; 
+    tankConfig[i]->initialized = real_tanks[i]->tank->initialized;
+    tankConfig[i]->paused = real_tanks[i]->tank->paused;
     tankConfig[i]->started = real_tanks[i]->tank->started;
-    tankConfig[i]->elapsed = 0; //TODO
+    tankConfig[i]->elapsed = real_tanks[i]->tank->elapsed;
+    tankConfig[i]->remaining = real_tanks[i]->tank->remaining;
+    tankConfig[i]->expires = real_tanks[i]->tank->expires;
   }
 }
 
@@ -140,7 +150,7 @@ int main(void) {
   init();
   app_event_loop();
 
-  //write_config();
+  write_config();
   //schedule_wakeups();
 
   deinit();
