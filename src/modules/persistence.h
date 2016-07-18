@@ -8,6 +8,7 @@ typedef struct {
 	bool running;
 	time_t time_paused;
 	time_t last_tick;
+	int wakeup_id;
 } PersistBaseDataV1;
 
 typedef struct {

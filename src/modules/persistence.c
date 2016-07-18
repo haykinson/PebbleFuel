@@ -9,6 +9,7 @@ static uint32_t key_interval = 2; //int; minutes
 static uint32_t key_running = 3; //bool; true when running, false when paused
 static uint32_t key_time_paused = 4; //int; timestamp when paused, or 0
 static uint32_t key_last_tick = 5; //int; last known timestamp when saved
+static uint32_t key_wakeup_id = 6; //int; wakeup id saved, or 0 if no wakeup
 
 static uint32_t key_base_for_offsets = 10000;
 static uint32_t keyoffset_tank_selected = 0; //bool
@@ -49,6 +50,7 @@ bool persistence_read_config() {
 	baseData.running = persist_read_bool(key_running);
 	baseData.time_paused = (time_t) persist_read_int(key_time_paused);
 	baseData.last_tick = (time_t) persist_read_int(key_last_tick);
+	baseData.wakeup_id = (int) persist_read_int(key_wakeup_id);
 
 	APP_LOG(APP_LOG_LEVEL_INFO, "Persistence: reading tanks");
 
@@ -102,6 +104,7 @@ void persistence_write_config(PersistBaseDataV1 *newConfig, PersistTankV1 **tank
 	persist_write_bool(key_running, baseData.running);
 	persist_write_int(key_time_paused, (uint32_t) baseData.time_paused);
 	persist_write_int(key_last_tick, (uint32_t) baseData.last_tick);
+	persist_write_int(key_wakeup_id, baseData.wakeup_id);
 
 	tankData = tankConfig;
 

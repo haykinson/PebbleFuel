@@ -151,21 +151,63 @@ static void deinit(void) {
 }
 
 void schedule_wakeups() {
-  if (!get_paused()) {
-    APP_LOG(APP_LOG_LEVEL_INFO, "Exiting, would schedule wakeup in %ld", (long) (get_remaining_target_time() - time(NULL)));
-  } else {
+  bool scheduled = false;
+
+  TankUI **real_tanks = flight_get_tanks();
+
+  for (int i = 0; i < 2; i++) {
+    Tank *tank = real_tanks[i]->tank;
+    if (tank->selected && !tank->paused) {
+      time_t wakeup_time = tank->expires;
+      APP_LOG(APP_LOG_LEVEL_INFO, "Exiting, would schedule wakeup in %ld", (long) (wakeup_time));
+      WakeupId id = wakeup_schedule(wakeup_time, 0, false);
+
+      if (id > 0) {
+        APP_LOG(APP_LOG_LEVEL_INFO, "Wakeup scheduled with id %d", (int) id);
+        currentConfig.wakeup_id = id;
+        scheduled = true;
+      }
+    }
+  }
+
+  if (!scheduled) {
     APP_LOG(APP_LOG_LEVEL_INFO, "Existing, no wakeup cause paused");
   }
+}
+
+static void check_wakeups() {
+  if(launch_reason() == APP_LAUNCH_WAKEUP) {
+    // The app was started by a wakeup event.
+    WakeupId id = 0;
+    int32_t reason = 0;
+
+    // Get details and handle the event appropriately
+    wakeup_get_launch_event(&id, &reason);
+    APP_LOG(APP_LOG_LEVEL_INFO, "Launched because of wakeup id %d with reason %d", (int) id, (int) reason);
+    currentConfig.wakeup_id = 0;
+  } else {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Didn't launch with wakeups, checking if any were set to cancel");
+    if (currentConfig.wakeup_id > 0) {
+      APP_LOG(APP_LOG_LEVEL_INFO, "Found config for wakeup id %d; canceling all wakeups", currentConfig.wakeup_id);
+
+      wakeup_cancel_all();
+
+      currentConfig.wakeup_id = 0;
+    }
+  }
+
 }
 
 int main(void) {
   read_config();
 
+  check_wakeups();
+
   init();
   app_event_loop();
 
+  schedule_wakeups();
   write_config();
-  //schedule_wakeups();
 
   deinit();
 }
