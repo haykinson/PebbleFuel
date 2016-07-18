@@ -5,7 +5,7 @@
 #include "modules/persistence.h"
 #include "modules/tank.h"
 
-#define CONFIG_TIME_CUTOFF 5
+#define CONFIG_TIME_CUTOFF 86400
 
 static Window *selection_window;
 static Window *flight_window;
