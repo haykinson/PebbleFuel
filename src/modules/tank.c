@@ -100,9 +100,13 @@ void tank_unpause(Tank *tank, time_t tick) {
 	}
 
 	//APP_LOG(APP_LOG_LEVEL_INFO, "Tank Unpausing: elapsed %ld, remaining %ld", tank->elapsed, tank->remaining);
+	//APP_LOG(APP_LOG_LEVEL_INFO, "Tank Unpausing: started %ld, expires %ld", tank->started, tank->expires);
 
-	tank->started = tick - tank->elapsed;
+	tank->started = tick;// - tank->elapsed;
 	tank->expires = tick - tank->remaining;
+
+	//APP_LOG(APP_LOG_LEVEL_INFO, "Tank Unpausing NOW: started %ld, expires %ld", tank->started, tank->expires);
+
 	tank->paused = false;
 }
 
