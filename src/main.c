@@ -5,6 +5,8 @@
 #include "modules/persistence.h"
 #include "modules/tank.h"
 
+#define CONFIG_TIME_CUTOFF 5
+
 static Window *selection_window;
 static Window *flight_window;
 
@@ -26,6 +28,7 @@ static void create_default_config() {
   currentConfig.interval = 15;
   currentConfig.running = false;
   currentConfig.time_paused = 0;
+  currentConfig.last_tick = 0;
 
   tankConfig = malloc(sizeof(PersistTankV1 *) * currentConfig.num_tanks);
   for (int i = 0; i < 2; i++) {
@@ -52,6 +55,16 @@ static void read_config() {
     persistence_read_config();
 
     currentConfig = *persistence_get_config();
+    //ensure not past the cutoff
+    if (currentConfig.last_tick > 0 && (time(NULL) - currentConfig.last_tick) > CONFIG_TIME_CUTOFF) {
+      int lastInterval = currentConfig.interval;
+      APP_LOG(APP_LOG_LEVEL_INFO, "Past saved time cutoff; going with default config except interval");
+      create_default_config();
+      currentConfig.interval = lastInterval;
+      return;
+    }
+
+
     tankConfig = persistence_get_tank_config();
 
     APP_LOG(APP_LOG_LEVEL_INFO, "Interval: %ld", currentConfig.interval);
@@ -85,6 +98,7 @@ void gather_current_config() {
   currentConfig.interval = get_interval();
   currentConfig.running = !get_paused();
   currentConfig.time_paused = 0; //TODO
+  currentConfig.last_tick = time(NULL);
 
   cleanup_config();
 

@@ -7,6 +7,7 @@ typedef struct {
 	uint32_t interval;
 	bool running;
 	time_t time_paused;
+	time_t last_tick;
 } PersistBaseDataV1;
 
 typedef struct {
