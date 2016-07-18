@@ -12,6 +12,7 @@ static TextLayer *text_layer;
 static TextLayer *time_selection_layer;
 static char *time_selection_text;
 static Window *flight_window;
+static TextLayer *help_text_layer;
 
 static char *text_for_minutes() {
   snprintf(time_selection_text, MAX_TIME_SELECTION_TEXT_LEN, "%i mins", get_interval());
@@ -52,18 +53,31 @@ static void selection_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
-  text_layer = text_layer_create((GRect) { .origin = { 0, 72 }, .size = { bounds.size.w, 20 } });
+  text_layer = text_layer_create((GRect) { .origin = { 0, 50 }, .size = { bounds.size.w, 20 } });
   text_layer_set_text(text_layer, "Choose an interval");
   text_layer_set_text_alignment(text_layer, GTextAlignmentCenter);
   layer_add_child(window_layer, text_layer_get_layer(text_layer));
   
-  time_selection_layer = text_layer_create((GRect) { .origin = { 0, 90 }, .size = {bounds.size.w, 20 }});
+  time_selection_layer = text_layer_create((GRect) { .origin = { 0, 68 }, .size = {bounds.size.w, 20 }});
   text_layer_set_text(time_selection_layer, text_for_minutes());
   text_layer_set_text_alignment(time_selection_layer, GTextAlignmentCenter);
+#if defined(PBL_COLOR)
+  text_layer_set_text_color(time_selection_layer, GColorOxfordBlue);
+#endif
   layer_add_child(window_layer, text_layer_get_layer(time_selection_layer));
+
+  help_text_layer = text_layer_create((GRect) { .origin = { 0, 95 }, .size = {bounds.size.w, 60 }});
+  text_layer_set_text(help_text_layer, "On flight screen, use up/down to select tank.\nTap select to pause.\nPress and hold to reset.");
+  text_layer_set_text_alignment(help_text_layer, GTextAlignmentCenter);
+  text_layer_set_overflow_mode(help_text_layer, GTextOverflowModeWordWrap);
+#if defined(PBL_COLOR)
+  text_layer_set_text_color(help_text_layer, GColorDarkGray);
+#endif
+  layer_add_child(window_layer, text_layer_get_layer(help_text_layer));  
 }
 
 static void selection_window_unload(Window *window) {
+  text_layer_destroy(help_text_layer);
   text_layer_destroy(text_layer);
   text_layer_destroy(time_selection_layer);
 }
