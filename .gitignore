@@ -1,1 +1,4 @@
-
+build
+.lock-waf_darwin_build
+_wscript
+.vscode
