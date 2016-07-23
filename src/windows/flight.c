@@ -225,8 +225,8 @@ void flight_init_vars(Window *flight_window, PersistTankV1 **tankConfig) {
   tank_set_tick_callback(left_tank->tank, tankui_update_tick, left_tank);
   tank_set_tick_callback(right_tank->tank, tankui_update_tick, right_tank);
 
-  tank_set_pattern(left_tank->tank, left_pattern);
-  tank_set_pattern(right_tank->tank, right_pattern);
+  tank_set_pattern(left_tank->tank, left_pattern, ARRAY_LENGTH(left_pattern));
+  tank_set_pattern(right_tank->tank, right_pattern, ARRAY_LENGTH(right_pattern));
   tankui_set_colors(left_tank, LEFT_WING_COLOR, UNFILLED_COLOR);
   tankui_set_colors(right_tank, RIGHT_WING_COLOR, UNFILLED_COLOR);
 

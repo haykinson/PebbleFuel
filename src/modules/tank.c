@@ -29,7 +29,7 @@ void tank_free(Tank *tank) {
 	}
 }
 
-void tank_set_pattern(Tank *tank, const uint32_t *pattern) {
+void tank_set_pattern(Tank *tank, const uint32_t *pattern, const uint32_t pattern_len) {
 	if (NULL == tank) {
 		return;
 	}
@@ -42,7 +42,7 @@ void tank_set_pattern(Tank *tank, const uint32_t *pattern) {
 	tank->vibePattern = (VibePattern *) malloc(sizeof(VibePattern));
 
     tank->vibePattern->durations = (uint32_t *) pattern;
-    tank->vibePattern->num_segments = ARRAY_LENGTH(pattern);
+    tank->vibePattern->num_segments = pattern_len;
 }
 
 void tank_set_tick_callback(Tank *tank, void (*callback)(Tank *, time_t, void *), void *callbackContext) {

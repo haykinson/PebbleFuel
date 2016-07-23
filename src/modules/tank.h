@@ -25,7 +25,7 @@ struct Tank {
 
 Tank *tank_create(PersistTankV1 *tankConfig);
 void tank_free(Tank *tank);
-void tank_set_pattern(Tank *tank, const uint32_t *pattern);
+void tank_set_pattern(Tank *tank, const uint32_t *pattern, const uint32_t pattern_len);
 void tank_update_tick(Tank *tank, time_t tick);
 void tank_set_tick_callback(Tank *tank, void (*callback)(Tank *, time_t, void *), void *callbackContext);
 
