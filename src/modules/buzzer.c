@@ -6,6 +6,7 @@ void buzz_tank(Tank * tank) {
 	}
 
 	if (!tank->notified) {
+		//APP_LOG(APP_LOG_LEVEL_INFO, "*******BZZZZZZ*******");
 		light_enable_interaction();
 		vibes_enqueue_custom_pattern(*(tank->vibePattern));
 

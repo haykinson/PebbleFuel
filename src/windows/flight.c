@@ -143,28 +143,31 @@ static void flight_click_handler(TankUI *tankui, TankUI *otherTankUI) {
   //unpause();
   
   if (!tankui->tank->selected) {    
+  	//APP_LOG(APP_LOG_LEVEL_INFO, "-------UNPAUSING------");
     tank_unpause(tankui->tank, tick);
     if (paused) {
       paused = false;
     }
 
-    //TODO this feels awkward...
-    //if (!tankui->tank->initialized) {
-	    tank_set_started(tankui->tank, tick);
-    	tank_set_expires(tankui->tank, tick + get_interval() * 60);
-    //}
+	tank_set_started(tankui->tank, tick);
+	tank_set_expires(tankui->tank, tick + get_interval() * 60);
 
     layer_set_hidden(text_layer_get_layer(tankui->remainingLayer), false);
-    reset_buzz_notification_need();
   }
   if (otherTankUI->tank->selected) {
+  	//APP_LOG(APP_LOG_LEVEL_INFO, "-------PAUSING------");
     layer_set_hidden(text_layer_get_layer(otherTankUI->remainingLayer), true);
+    //update tick before pausing to make sure we capture the right time
+    tank_update_tick(otherTankUI->tank, tick);
     tank_pause(otherTankUI->tank);
   }
 
+  reset_buzz_notification_need();
   
   tankui->tank->selected = true;
   otherTankUI->tank->selected = false;
+
+  //APP_LOG(APP_LOG_LEVEL_INFO, "-------SWITCHED------");
   
   layer_mark_dirty(airplane_layer);
   //TODO force update right now
