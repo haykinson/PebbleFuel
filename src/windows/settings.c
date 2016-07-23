@@ -3,9 +3,9 @@
 static const int MAX_TIME_SELECTION_TEXT_LEN = 10;
 
 static const int STARTING_INTERVAL = 15;
-static const int MIN_INTERVAL = 1; //5;
+static const int MIN_INTERVAL = 5;
 static const int MAX_INTERVAL = 60;
-static const int INTERVAL_CHANGE = 1; //5;
+static const int INTERVAL_CHANGE = 5;
 static const int INTERVAL_SELECTION_BUTTON_REPEATING_DELAY = 200; //milliseconds
 
 static TextLayer *text_layer;
