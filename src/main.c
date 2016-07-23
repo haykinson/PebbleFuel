@@ -40,10 +40,11 @@ static void create_default_config() {
     tankConfig[i]->elapsed = 0;
     tankConfig[i]->initialized = false;
     tankConfig[i]->paused = true;
+    tankConfig[i]->notified = false;
   }
 }
 
-static void read_config() {
+static bool read_config() {
   //create_default_config();
   
   APP_LOG(APP_LOG_LEVEL_INFO, "Starting up");
@@ -61,11 +62,20 @@ static void read_config() {
       APP_LOG(APP_LOG_LEVEL_INFO, "Past saved time cutoff; going with default config except interval");
       create_default_config();
       currentConfig.interval = lastInterval;
-      return;
+      return false;
     }
 
 
     tankConfig = persistence_get_tank_config();
+
+    bool currently_running = false;
+
+    for (int i = 0; i < 2; i++) {
+      if (tankConfig[i]->selected && !tankConfig[i]->paused) {
+        currently_running = true;
+        break;
+      }
+    }
 
     APP_LOG(APP_LOG_LEVEL_INFO, "Interval: %ld", currentConfig.interval);
     APP_LOG(APP_LOG_LEVEL_INFO, "Tank Config[0] selected: %s", tankConfig[0]->selected ? "yes" : "no");
@@ -74,9 +84,13 @@ static void read_config() {
     APP_LOG(APP_LOG_LEVEL_INFO, "Tank Config[1] selected: %s", tankConfig[1]->selected ? "yes" : "no");
     APP_LOG(APP_LOG_LEVEL_INFO, "Tank Config[1] started: %ld", tankConfig[1]->started);
     APP_LOG(APP_LOG_LEVEL_INFO, "Tank Config[1] elapsed: %ld", tankConfig[1]->elapsed);
+
+    return currently_running;
   } else {
     APP_LOG(APP_LOG_LEVEL_INFO, "Creating default config");
     create_default_config();
+
+    return false;
   }
 }
 
@@ -116,6 +130,7 @@ void gather_current_config() {
     tankConfig[i]->elapsed = real_tanks[i]->tank->elapsed;
     tankConfig[i]->remaining = real_tanks[i]->tank->remaining;
     tankConfig[i]->expires = real_tanks[i]->tank->expires;
+    tankConfig[i]->notified = real_tanks[i]->tank->notified;
   }
 }
 
@@ -126,14 +141,18 @@ static void write_config() {
   APP_LOG(APP_LOG_LEVEL_INFO, "Wrote config");
 }
 
-static void init(void) {
+static void init(bool currently_running) {
   init_basic_windows();
   init_vars();
   selection_init_window(selection_window);
   flight_init_window(flight_window);
   
-  const bool animated = true;
-  window_stack_push(selection_window, animated);
+  if (!currently_running) {
+    window_stack_push(selection_window, true /* animated */);
+  } else {
+    window_stack_push(selection_window, false /* animated */);
+    window_stack_push(flight_window, true /* animated */);
+  }
 }
 
 static void deinit(void) {
@@ -157,7 +176,7 @@ void schedule_wakeups() {
 
   for (int i = 0; i < 2; i++) {
     Tank *tank = real_tanks[i]->tank;
-    if (tank->selected && !tank->paused) {
+    if (tank->selected && !tank->paused && !tank->notified) {
       time_t wakeup_time = tank->expires;
       APP_LOG(APP_LOG_LEVEL_INFO, "Exiting, would schedule wakeup in %ld", (long) (wakeup_time));
       WakeupId id = wakeup_schedule(wakeup_time, 0, false);
@@ -199,11 +218,11 @@ static void check_wakeups() {
 }
 
 int main(void) {
-  read_config();
+  bool currently_running = read_config();
 
   check_wakeups();
 
-  init();
+  init(currently_running);
   app_event_loop();
 
   schedule_wakeups();
