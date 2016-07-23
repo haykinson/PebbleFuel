@@ -19,6 +19,7 @@ static uint32_t keyoffset_tank_started = 3; //int; timestamp when started
 static uint32_t keyoffset_tank_elapsed = 4; //int; total time elapsed since started
 static uint32_t keyoffset_tank_expires = 5; //int; timestamp when expires
 static uint32_t keyoffset_tank_remaining = 6; //int; total time until expires
+static uint32_t keyoffset_tank_notified = 7; //bool; true if tank that's expired has already been notified
 
 static PersistBaseDataV1 baseData;
 static PersistTankV1 **tankData;
@@ -64,6 +65,7 @@ bool persistence_read_config() {
 		tank->elapsed = (time_t) persist_read_int(key_base_for_offsets * (i+1) + keyoffset_tank_elapsed);
 		tank->expires = (time_t) persist_read_int(key_base_for_offsets * (i+1) + keyoffset_tank_expires);
 		tank->remaining = (time_t) persist_read_int(key_base_for_offsets * (i+1) + keyoffset_tank_remaining);
+		tank->notified = persist_read_bool(key_base_for_offsets * (i+1) + keyoffset_tank_notified);
 
 		tankData[i] = tank;
 	}
@@ -117,5 +119,6 @@ void persistence_write_config(PersistBaseDataV1 *newConfig, PersistTankV1 **tank
 		persist_write_int(key_base_for_offsets * (i+1) + keyoffset_tank_elapsed, tank->elapsed);
 		persist_write_int(key_base_for_offsets * (i+1) + keyoffset_tank_expires, tank->expires);
 		persist_write_int(key_base_for_offsets * (i+1) + keyoffset_tank_remaining, tank->remaining);
+		persist_write_bool(key_base_for_offsets * (i+1) + keyoffset_tank_notified, tank->notified);
 	}
 }

@@ -1,4 +1,5 @@
 #include "tank.h"
+#include "buzzer.h"
 
 Tank *tank_create(PersistTankV1 *tankConfig) {
 	Tank * tank = (Tank*) malloc(sizeof(Tank));
@@ -13,6 +14,7 @@ Tank *tank_create(PersistTankV1 *tankConfig) {
 		tank->expires = tankConfig->expires;
 		tank->elapsed = tankConfig->elapsed;
 		tank->remaining = tankConfig->remaining;
+		tank->notified = tankConfig->notified;
 	}
 	return tank;
 }
@@ -59,6 +61,11 @@ void tank_update_tick(Tank *tank, time_t tick) {
 
 	tank->latestTick = tick;
 	//APP_LOG(APP_LOG_LEVEL_INFO, "Update tick to %ld", tick);
+
+	//check to see if we need to notify
+	if (tick >= tank->expires && !tank->notified) {
+		buzz_tank(tank);
+	}
 
 	if (NULL != tank->callback) {
 		tank->callback(tank, tick, tank->callbackContext);

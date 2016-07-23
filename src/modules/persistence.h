@@ -19,6 +19,7 @@ typedef struct {
 	time_t elapsed;
 	time_t expires;
 	time_t remaining;
+	bool notified;
 } PersistTankV1;
 
 bool persistence_has_config();
